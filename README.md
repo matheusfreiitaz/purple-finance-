@@ -57,3 +57,9 @@ purple-finance/
 │
 ├── README.md              # Documentação do projeto
 └── package.json           # Dependências e scripts
+Melhorias Futuras
+Adicionar autenticação
+
+Implementar backend com Firebase
+
+Criar versão PWA
