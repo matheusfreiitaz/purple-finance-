@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PurpleFinance: Gestão Inteligente de Dinheiro Pessoal</title>
+    <meta name="description" content="Plataforma moderna de planejamento financeiro com painéis interativos, orçamentos personalizados e acompanhamento de metas em um design roxo elegante">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+</head>
+<body class="bg-purple-50 min-h-screen">
+    <div id="app" class="min-h-screen">
+        <!-- Navegação -->
+        <nav class="bg-purple-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-3">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold">PurpleFinance</h1>
+                    <div class="space-x-4">
+                        <button @click="activeView = 'dashboard'" :class="{'text-purple-200': activeView === 'dashboard'}" class="hover:text-purple-200" aria-label="Ir para o painel">Painel</button>
+                        <button @click="activeView = 'transactions'" :class="{'text-purple-200': activeView === 'transactions'}" class="hover:text-purple-200" aria-label="Ir para as transações">Transações</button>
+                        <button @click="activeView = 'goals'" :class="{'text-purple-200': activeView === 'goals'}" class="hover:text-purple-200" aria-label="Ir para as metas">Metas</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="container mx-auto px-4 py-8">
+            <!-- Visão do Painel -->
+            <div v-if="activeView === 'dashboard'" class="space-y-6">
+                <!-- Painéis de Saldo -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold text-purple-800">Saldo Atual</h3>
+                        <p class="text-3xl font-bold text-purple-600">{{ formatCurrency(balance) }}</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold text-purple-800">Renda Mensal</h3>
+                        <p class="text-3xl font-bold text-green-600">{{ formatCurrency(monthlyIncome) }}</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold text-purple-800">Despesas Mensais</h3>
+                        <p class="text-3xl font-bold text-red-600">{{ formatCurrency(monthlyExpenses) }}</p>
+                    </div>
+                </div>
+                
+                <!-- Gráficos -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold text-purple-800 mb-4">Despesas por Categoria</h3>
+                        <canvas ref="pieChart"></canvas>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold text-purple-800 mb-4">Tendência Mensal</h3>
+                        <canvas ref="lineChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visão de Transações -->
+            <div v-if="activeView === 'transactions'" class="space-y-6">
+                <!-- Formulário de Transação -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-bold text-purple-800 mb-4">Adicionar Transação</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input v-model="newTransaction.description" type="text" placeholder="Descrição" class="p-2 border rounded" aria-label="Descrição da transação">
+                        <input v-model="newTransaction.amount" type="number" placeholder="Valor" class="p-2 border rounded" aria-label="Valor da transação">
+                        <select v-model="newTransaction.category" class="p-2 border rounded" aria-label="Categoria da transação">
+                            <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
+                        </select>
+                        <select v-model="newTransaction.type" class="p-2 border rounded" aria-label="Tipo da transação">
+                            <option value="income">Renda</option>
+                            <option value="expense">Despesa</option>
+                        </select>
+                        <button @click="addTransaction" class="bg-purple-600 text-white p-2 rounded hover:bg-purple-700" aria-label="Adicionar transação">Adicionar</button>
+                    </div>
+                </div>
+
+               <!-- Lista de Transações -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-bold text-purple-800 mb-4">Transações Recentes</h2>
+                    <div class="overflow-x-auto">
+                      <table class="w-full">
+                        <thead>
+                          <tr class="bg-purple-100">
+                            <th class="p-2 text-left">Data</th>
+                            <th class="p-2 text-left">Descrição</th>
+                            <th class="p-2 text-left">Categoria</th>
+                            <th class="p-2 text-left">Valor</th>
+                            <th class="p-2 text-left">Tipo</th>
+                            <th class="p-2 text-left">Ação</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="transaction in transactions" :key="transaction.id" class="border-b">
+                            <td class="p-2">{{ formatDate(transaction.date) }}</td>
+                            <td class="p-2">{{ transaction.description }}</td>
+                            <td class="p-2">{{ transaction.category }}</td>
+                            <td class="p-2" :class="transaction.type === 'income' ? 'text-green-600' : 'text-red-600'">
+                              {{ formatCurrency(transaction.amount) }}
+                            </td>
+                            <td class="p-2">{{ transaction.type === 'income' ? 'Receita' : 'Despesa' }}</td>
+                            <td class="p-2 space-x-2">
+                              <button @click="editTransaction(transaction)" class="bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600">Editar</button>
+                              <button @click="deleteTransaction(transaction.id)" class="bg-red-500 text-white p-2 rounded hover:bg-red-600">Excluir</button>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                     <!-- Formulário de Edição -->
+                    <div v-if="editingTransaction" class="bg-white rounded-lg shadow-md p-6 mt-4">
+                        <h2 class="text-xl font-bold mb-4 text-purple-800">Editar Transação</h2>
+                        <form @submit.prevent="saveEdit">
+                          <div class="mb-2">
+                            <label class="block">Descrição:</label>
+                            <input v-model="editedTransaction.description" class="w-full p-2 border rounded" required />
+                          </div>
+                          <div class="mb-2">
+                            <label class="block">Categoria:</label>
+                            <select v-model="editedTransaction.category" class="w-full p-2 border rounded" required>
+                              <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
+                            </select>
+                          </div>
+                          <div class="mb-2">
+                            <label class="block">Valor:</label>
+                            <input v-model.number="editedTransaction.amount" type="number" class="w-full p-2 border rounded" required />
+                          </div>
+                          <div class="mb-2">
+                            <label class="block">Tipo:</label>
+                            <select v-model="editedTransaction.type" class="w-full p-2 border rounded" required>
+                              <option value="income">Receita</option>
+                              <option value="expense">Despesa</option>
+                            </select>
+                          </div>
+                          <div class="space-x-2">
+                            <button type="submit" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Salvar</button>
+                            <button type="button" @click="cancelEdit" class="bg-gray-400 text-white p-2 rounded hover:bg-gray-500">Cancelar</button>
+                          </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visão de Metas -->
+            <div v-if="activeView === 'goals'" class="space-y-6">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-bold text-purple-800 mb-4">Metas Financeiras</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <input v-model="newGoal.description" type="text" placeholder="Descrição da Meta" class="p-2 border rounded" aria-label="Descrição da meta">
+                        <input v-model="newGoal.target" type="number" placeholder="Valor Alvo desejado" class="p-2 border rounded" aria-label="Valor alvo da meta">
+                        <input v-model="newGoal.current" type="number" placeholder="Valor Atual disponivel em conta" class="p-2 border rounded" aria-label="Valor atual da meta">
+                        <button @click="addGoal" class="bg-purple-600 text-white p-2 rounded hover:bg-purple-700" aria-label="Adicionar meta">Adicionar Meta</button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div v-for="goal in goals" :key="goal.id" class="border rounded p-4">
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="font-semibold text-purple-800">{{ goal.description }}</span>
+                                <span class="font-semibold text-purple-600">{{ formatCurrency(goal.current) }} / {{ formatCurrency(goal.target) }}</span>
+                            </div>
+                            <div class="w-full bg-purple-200 rounded-full">
+                                <div :style="{ width: Math.min(100, (goal.current / goal.target) * 100) + '%' }" class="h-2 bg-purple-600 rounded-full"></div>
+                            </div>
+                            <div class="mt-4 space-x-2">
+                                <button @click="editGoal(goal)" class="bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600">Editar</button>
+                                <button @click="deleteGoal(goal.id)" class="bg-red-500 text-white p-2 rounded hover:bg-red-600">Excluir</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Formulário de Edição de Meta -->
+                    <div v-if="editingGoal" class="bg-white rounded-lg shadow-md p-6 mt-4">
+                        <h2 class="text-xl font-bold mb-4 text-purple-800">Editar Meta</h2>
+                        <form @submit.prevent="saveGoalEdit">
+                            <div class="mb-2">
+                                <label class="block">Descrição:</label>
+                                <input v-model="editedGoal.description" class="w-full p-2 border rounded" required />
+                            </div>
+                            <div class="mb-2">
+                                <label class="block">Valor Alvo:</label>
+                                <input v-model.number="editedGoal.target" type="number" class="w-full p-2 border rounded" required />
+                            </div>
+                            <div class="mb-2">
+                                <label class="block">Valor Atual:</label>
+                                <input v-model.number="editedGoal.current" type="number" class="w-full p-2 border rounded" required />
+                            </div>
+                            <div class="space-x-2">
+                                <button type="submit" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Salvar</button>
+                                <button type="button" @click="cancelGoalEdit" class="bg-gray-400 text-white p-2 rounded hover:bg-gray-500">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
