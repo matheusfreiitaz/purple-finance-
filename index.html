@@ -9,6 +9,7 @@
     <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+    <link rel="stylesheet" href="/assets/css/styles.css">
 </head>
 <body class="bg-purple-50 min-h-screen">
     <div id="app" class="min-h-screen">
@@ -60,8 +61,15 @@
 
             <!-- Visão de Transações -->
             <div v-if="activeView === 'transactions'" class="space-y-6">
+                <!-- Abas de Transações -->
+                <div class="flex border-b border-purple-200">
+                    <button @click="transactionTab = 'add'" :class="{'border-b-2 border-purple-600 text-purple-600': transactionTab === 'add'}" class="px-4 py-2 font-medium">Adicionar Transação</button>
+                    <button @click="transactionTab = 'list'" :class="{'border-b-2 border-purple-600 text-purple-600': transactionTab === 'list'}" class="px-4 py-2 font-medium">Lista de Transações</button>
+                    <button @click="transactionTab = 'history'" :class="{'border-b-2 border-purple-600 text-purple-600': transactionTab === 'history'}" class="px-4 py-2 font-medium">Histórico Mensal</button>
+                </div>
+
                 <!-- Formulário de Transação -->
-                <div class="bg-white rounded-lg shadow-md p-6">
+                <div v-if="transactionTab === 'add'" class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-2xl font-bold text-purple-800 mb-4">Adicionar Transação</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <input v-model="newTransaction.description" type="text" placeholder="Descrição" class="p-2 border rounded" aria-label="Descrição da transação">
@@ -78,7 +86,7 @@
                 </div>
 
                <!-- Lista de Transações -->
-                <div class="bg-white rounded-lg shadow-md p-6">
+                <div v-if="transactionTab === 'list'" class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-2xl font-bold text-purple-800 mb-4">Transações Recentes</h2>
                     <div class="overflow-x-auto">
                       <table class="w-full">
@@ -141,6 +149,99 @@
                         </form>
                     </div>
                 </div>
+
+                <!-- Histórico Mensal -->
+                <div v-if="transactionTab === 'history'" class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-bold text-purple-800 mb-4">Histórico Mensal</h2>
+                    
+                    <div class="mb-6">
+                        <label class="block text-purple-800 font-medium mb-2">Selecione o Mês e Ano:</label>
+                        <div class="flex space-x-4">
+                            <select v-model="selectedMonth" class="p-2 border rounded flex-1">
+                                <option v-for="(month, index) in months" :key="index" :value="index">{{ month }}</option>
+                            </select>
+                            <select v-model="selectedYear" class="p-2 border rounded flex-1">
+                                <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
+                            </select>
+                            <button @click="loadMonthlyData" class="bg-purple-600 text-white p-2 rounded hover:bg-purple-700">Buscar</button>
+                        </div>
+                    </div>
+
+                    <div v-if="monthlyData" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="bg-purple-100 rounded-lg shadow-md p-6">
+                                <h3 class="text-lg font-semibold text-purple-800">Total Receitas</h3>
+                                <p class="text-3xl font-bold text-green-600">{{ formatCurrency(monthlyData.totalIncome) }}</p>
+                            </div>
+                            <div class="bg-purple-100 rounded-lg shadow-md p-6">
+                                <h3 class="text-lg font-semibold text-purple-800">Total Despesas</h3>
+                                <p class="text-3xl font-bold text-red-600">{{ formatCurrency(monthlyData.totalExpenses) }}</p>
+                            </div>
+                            <div class="bg-purple-100 rounded-lg shadow-md p-6">
+                                <h3 class="text-lg font-semibold text-purple-800">Saldo do Mês</h3>
+                                <p class="text-3xl font-bold" :class="monthlyData.balance >= 0 ? 'text-green-600' : 'text-red-600'">
+                                    {{ formatCurrency(monthlyData.balance) }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg shadow-md p-6">
+                            <h3 class="text-lg font-semibold text-purple-800 mb-4">Despesas por Categoria</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead>
+                                        <tr class="bg-purple-100">
+                                            <th class="p-2 text-left">Categoria</th>
+                                            <th class="p-2 text-left">Total Gasto</th>
+                                            <th class="p-2 text-left">% do Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(amount, category) in monthlyData.expensesByCategory" :key="category" class="border-b">
+                                            <td class="p-2">{{ category }}</td>
+                                            <td class="p-2 text-red-600">{{ formatCurrency(amount) }}</td>
+                                            <td class="p-2">
+                                                {{ monthlyData.totalExpenses > 0 ? ((amount / monthlyData.totalExpenses) * 100).toFixed(2) : '0' }}%
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg shadow-md p-6">
+                            <h3 class="text-lg font-semibold text-purple-800 mb-4">Transações do Mês</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead>
+                                        <tr class="bg-purple-100">
+                                            <th class="p-2 text-left">Data</th>
+                                            <th class="p-2 text-left">Descrição</th>
+                                            <th class="p-2 text-left">Categoria</th>
+                                            <th class="p-2 text-left">Valor</th>
+                                            <th class="p-2 text-left">Tipo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="transaction in monthlyData.transactions" :key="transaction.id" class="border-b">
+                                            <td class="p-2">{{ formatDate(transaction.date) }}</td>
+                                            <td class="p-2">{{ transaction.description }}</td>
+                                            <td class="p-2">{{ transaction.category }}</td>
+                                            <td class="p-2" :class="transaction.type === 'income' ? 'text-green-600' : 'text-red-600'">
+                                                {{ formatCurrency(transaction.amount) }}
+                                            </td>
+                                            <td class="p-2">{{ transaction.type === 'income' ? 'Receita' : 'Despesa' }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-else class="text-center py-8 text-purple-800">
+                        <p>Selecione um mês e ano para visualizar o histórico</p>
+                    </div>
+                </div>
             </div>
 
             <!-- Visão de Metas -->
@@ -196,3 +297,7 @@
             </div>
         </main>
     </div>
+
+    <script src="/assets/js/app.js"></script>
+</body>
+</html>
