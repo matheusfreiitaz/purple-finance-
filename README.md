@@ -29,37 +29,4 @@ Aplicação de gestão financeira pessoal com Vue.js e Tailwind CSS
 
 ## 📊 Estrutura do Código
 
-```plaintext
-purple-finance/
-│
-├── public/
-│   ├── index.html          # Arquivo HTML principal
-│   └── assets/
-│       ├── css/            # Estilos adicionais (se necessário)
-│       └── images/         # Imagens do projeto
-│
-├── src/
-│   ├── components/         # Componentes Vue
-│   │   ├── Navbar.vue
-│   │   ├── Dashboard.vue
-│   │   ├── Transactions.vue
-│   │   └── Goals.vue
-│   │
-│   ├── composables/        # Lógica reutilizável
-│   │   ├── useCharts.js
-│   │   └── useFormValidation.js
-│   │
-│   ├── utils/             # Utilitários
-│   │   ├── formatters.js  # Formatação de moeda e datas
-│   │   └── storage.js     # LocalStorage helpers
-│   │
-│   └── main.js            # Ponto de entrada da aplicação
-│
-├── README.md              # Documentação do projeto
-└── package.json           # Dependências e scripts
-Melhorias Futuras
-Adicionar autenticação
 
-Implementar backend com Firebase
-
-Criar versão PWA
