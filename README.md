@@ -30,3 +30,4 @@ Aplicação de gestão financeira pessoal com Vue.js e Tailwind CSS
 ## 📊 Estrutura do Código
 
 
+![image](https://github.com/user-attachments/assets/dc2974e5-afdd-4c21-b7e6-fd1ea30a473f)
