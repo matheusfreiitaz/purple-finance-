@@ -1,303 +1,1390 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PurpleFinance: Gestão Inteligente de Dinheiro Pessoal</title>
-    <meta name="description" content="Plataforma moderna de planejamento financeiro com painéis interativos, orçamentos personalizados e acompanhamento de metas em um design roxo elegante">
+    <title>PurpleFinance | Gestão Financeira Pessoal Inteligente</title>
+    <meta name="description" content="Controle suas finanças de forma simples e eficiente com o PurpleFinance. Planeje, acompanhe e alcance suas metas financeiras.">
+    
+    <!-- Fontes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Framework CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
+    
+    <!-- Vue.js e Chart.js -->
+    <script src="https://unpkg.com/vue@3.2.47/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
-    <link rel="stylesheet" href="/assets/css/styles.css">
+    
+    <style>
+        :root {
+            --primary: #6D28D9;
+            --primary-light: #8B5CF6;
+            --primary-lighter: #C4B5FD;
+            --primary-dark: #5B21B6;
+            --accent: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --text: #1F2937;
+            --text-light: #6B7280;
+            --bg: #F9FAFB;
+            --bg-card: #FFFFFF;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            background-color: var(--bg);
+        }
+        
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .btn-outline {
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .btn-outline:hover {
+            background-color: var(--primary-lighter);
+        }
+        
+        .text-primary {
+            color: var(--primary);
+        }
+        
+        .bg-primary {
+            background-color: var(--primary);
+        }
+        
+        .border-primary {
+            border-color: var(--primary);
+        }
+        
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.3s;
+        }
+        .fade-enter, .fade-leave-to {
+            opacity: 0;
+        }
+        
+        .nav-link {
+            position: relative;
+        }
+        
+        .nav-link.active:after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-menu {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .mobile-menu.open {
+                transform: translateX(0);
+            }
+        }
+    </style>
 </head>
-<body class="bg-purple-50 min-h-screen">
-    <div id="app" class="min-h-screen">
-        <!-- Navegação -->
-        <nav class="bg-purple-600 text-white shadow-lg">
-            <div class="container mx-auto px-4 py-3">
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="bg-primary text-white shadow-md">
+            <div class="container mx-auto px-4 py-4">
                 <div class="flex justify-between items-center">
-                    <h1 class="text-2xl font-bold">PurpleFinance</h1>
-                    <div class="space-x-4">
-                        <button @click="activeView = 'dashboard'" :class="{'text-purple-200': activeView === 'dashboard'}" class="hover:text-purple-200" aria-label="Ir para o painel">Painel</button>
-                        <button @click="activeView = 'transactions'" :class="{'text-purple-200': activeView === 'transactions'}" class="hover:text-purple-200" aria-label="Ir para as transações">Transações</button>
-                        <button @click="activeView = 'goals'" :class="{'text-purple-200': activeView === 'goals'}" class="hover:text-purple-200" aria-label="Ir para as metas">Metas</button>
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-wallet text-2xl"></i>
+                        <h1 class="text-2xl font-bold">PurpleFinance</h1>
                     </div>
+                    
+                    <!-- Desktop Navigation -->
+                    <nav class="hidden md:block">
+                        <ul class="flex space-x-8">
+                            <li><a href="#" @click="activeView = 'dashboard'" class="nav-link transition-all hover:opacity-80" :class="{'active': activeView === 'dashboard'}">Dashboard</a></li>
+                            <li><a href="#" @click="activeView = 'transactions'" class="nav-link transition-all hover:opacity-80" :class="{'active': activeView === 'transactions'}">Transações</a></li>
+                            <li><a href="#" @click="activeView = 'goals'" class="nav-link transition-all hover:opacity-80" :class="{'active': activeView === 'goals'}">Metas</a></li>
+                            <li><a href="#" @click="activeView = 'categories'" class="nav-link transition-all hover:opacity-80" :class="{'active': activeView === 'categories'}">Categorias</a></li>
+                        </ul>
+                    </nav>
+                    
+                    <!-- Mobile Menu Button -->
+                    <button @click="mobileMenuOpen = !mobileMenuOpen" class="md:hidden text-2xl">
+                        <i class="fas fa-bars"></i>
+                    </button>
                 </div>
             </div>
-        </nav>
+            
+            <!-- Mobile Menu -->
+            <div class="mobile-menu md:hidden fixed top-0 left-0 w-64 h-full bg-primary z-50 p-4 shadow-lg" :class="{'open': mobileMenuOpen}">
+                <div class="flex justify-between items-center mb-8">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-wallet text-2xl"></i>
+                        <h2 class="text-xl font-bold">PurpleFinance</h2>
+                    </div>
+                    <button @click="mobileMenuOpen = false" class="text-2xl">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <nav>
+                    <ul class="space-y-4">
+                        <li><a href="#" @click="activeView = 'dashboard'; mobileMenuOpen = false" class="block py-2 px-4 rounded transition-all hover:bg-primary-dark" :class="{'bg-primary-dark': activeView === 'dashboard'}">Dashboard</a></li>
+                        <li><a href="#" @click="activeView = 'transactions'; mobileMenuOpen = false" class="block py-2 px-4 rounded transition-all hover:bg-primary-dark" :class="{'bg-primary-dark': activeView === 'transactions'}">Transações</a></li>
+                        <li><a href="#" @click="activeView = 'goals'; mobileMenuOpen = false" class="block py-2 px-4 rounded transition-all hover:bg-primary-dark" :class="{'bg-primary-dark': activeView === 'goals'}">Metas</a></li>
+                        <li><a href="#" @click="activeView = 'categories'; mobileMenuOpen = false" class="block py-2 px-4 rounded transition-all hover:bg-primary-dark" :class="{'bg-primary-dark': activeView === 'categories'}">Categorias</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </header>
 
+        <!-- Main Content -->
         <main class="container mx-auto px-4 py-8">
-            <!-- Visão do Painel -->
-            <div v-if="activeView === 'dashboard'" class="space-y-6">
-                <!-- Painéis de Saldo -->
+            <!-- Hero Section (Dashboard only) -->
+            <section v-if="activeView === 'dashboard'" class="mb-12 text-center">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Controle suas finanças com simplicidade</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">O PurpleFinance ajuda você a gerenciar seu dinheiro, acompanhar gastos e alcançar suas metas financeiras de forma intuitiva.</p>
+            </section>
+
+            <!-- Dashboard View -->
+            <div v-if="activeView === 'dashboard'" class="space-y-8">
+                <!-- Balance Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-semibold text-purple-800">Saldo Atual</h3>
-                        <p class="text-3xl font-bold text-purple-600">{{ formatCurrency(balance) }}</p>
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-primary">
+                        <div class="flex items-center space-x-4">
+                            <div class="bg-primary-light bg-opacity-20 p-3 rounded-full">
+                                <i class="fas fa-wallet text-primary text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-gray-500 font-medium">Saldo Atual</h3>
+                                <p class="text-2xl font-bold" :class="balance >= 0 ? 'text-green-600' : 'text-red-600'">{{ formatCurrency(balance) }}</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-semibold text-purple-800">Renda Mensal</h3>
-                        <p class="text-3xl font-bold text-green-600">{{ formatCurrency(monthlyIncome) }}</p>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
+                        <div class="flex items-center space-x-4">
+                            <div class="bg-green-100 p-3 rounded-full">
+                                <i class="fas fa-arrow-down text-green-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-gray-500 font-medium">Renda Mensal</h3>
+                                <p class="text-2xl font-bold text-green-600">{{ formatCurrency(monthlyIncome) }}</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-semibold text-purple-800">Despesas Mensais</h3>
-                        <p class="text-3xl font-bold text-red-600">{{ formatCurrency(monthlyExpenses) }}</p>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-500">
+                        <div class="flex items-center space-x-4">
+                            <div class="bg-red-100 p-3 rounded-full">
+                                <i class="fas fa-arrow-up text-red-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-gray-500 font-medium">Despesas Mensais</h3>
+                                <p class="text-2xl font-bold text-red-600">{{ formatCurrency(monthlyExpenses) }}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
-                <!-- Gráficos -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-semibold text-purple-800 mb-4">Despesas por Categoria</h3>
-                        <canvas ref="pieChart"></canvas>
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-semibold">Despesas por Categoria</h3>
+                            <button @click="showCategoryDetails = !showCategoryDetails" class="text-primary text-sm font-medium">
+                                {{ showCategoryDetails ? 'Ver gráfico' : 'Ver detalhes' }}
+                            </button>
+                        </div>
+                        
+                        <div v-if="!showCategoryDetails">
+                            <canvas ref="pieChart" class="max-h-80"></canvas>
+                        </div>
+                        
+                        <div v-else class="space-y-4">
+                            <div v-for="(amount, category) in expensesByCategory" :key="category" class="flex items-center">
+                                <div class="w-3 h-3 rounded-full mr-3" :style="{backgroundColor: getCategoryColor(category)}"></div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span>{{ category }}</span>
+                                        <span>{{ formatCurrency(amount) }}</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="h-2 rounded-full" :style="{
+                                            width: `${(amount / monthlyExpenses) * 100}%`,
+                                            backgroundColor: getCategoryColor(category)
+                                        }"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-semibold text-purple-800 mb-4">Tendência Mensal</h3>
-                        <canvas ref="lineChart"></canvas>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h3 class="text-lg font-semibold mb-6">Tendência Mensal</h3>
+                        <canvas ref="lineChart" class="max-h-80"></canvas>
                     </div>
                 </div>
-            </div>
-
-            <!-- Visão de Transações -->
-            <div v-if="activeView === 'transactions'" class="space-y-6">
-                <!-- Abas de Transações -->
-                <div class="flex border-b border-purple-200">
-                    <button @click="transactionTab = 'add'" :class="{'border-b-2 border-purple-600 text-purple-600': transactionTab === 'add'}" class="px-4 py-2 font-medium">Adicionar Transação</button>
-                    <button @click="transactionTab = 'list'" :class="{'border-b-2 border-purple-600 text-purple-600': transactionTab === 'list'}" class="px-4 py-2 font-medium">Lista de Transações</button>
-                    <button @click="transactionTab = 'history'" :class="{'border-b-2 border-purple-600 text-purple-600': transactionTab === 'history'}" class="px-4 py-2 font-medium">Histórico Mensal</button>
-                </div>
-
-                <!-- Formulário de Transação -->
-                <div v-if="transactionTab === 'add'" class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-2xl font-bold text-purple-800 mb-4">Adicionar Transação</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input v-model="newTransaction.description" type="text" placeholder="Descrição" class="p-2 border rounded" aria-label="Descrição da transação">
-                        <input v-model="newTransaction.amount" type="number" placeholder="Valor" class="p-2 border rounded" aria-label="Valor da transação">
-                        <select v-model="newTransaction.category" class="p-2 border rounded" aria-label="Categoria da transação">
-                            <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
-                        </select>
-                        <select v-model="newTransaction.type" class="p-2 border rounded" aria-label="Tipo da transação">
-                            <option value="income">Renda</option>
-                            <option value="expense">Despesa</option>
-                        </select>
-                        <button @click="addTransaction" class="bg-purple-600 text-white p-2 rounded hover:bg-purple-700" aria-label="Adicionar transação">Adicionar</button>
+                
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-4">Ações Rápidas</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <button @click="activeView = 'transactions'; transactionTab = 'add'" class="flex flex-col items-center justify-center p-4 border rounded-lg hover:bg-gray-50 transition-all">
+                            <div class="bg-primary-light bg-opacity-20 p-3 rounded-full mb-2">
+                                <i class="fas fa-plus text-primary"></i>
+                            </div>
+                            <span class="text-sm font-medium">Nova Transação</span>
+                        </button>
+                        
+                        <button @click="activeView = 'goals'" class="flex flex-col items-center justify-center p-4 border rounded-lg hover:bg-gray-50 transition-all">
+                            <div class="bg-green-100 p-3 rounded-full mb-2">
+                                <i class="fas fa-bullseye text-green-600"></i>
+                            </div>
+                            <span class="text-sm font-medium">Adicionar Meta</span>
+                        </button>
+                        
+                        <button @click="activeView = 'categories'" class="flex flex-col items-center justify-center p-4 border rounded-lg hover:bg-gray-50 transition-all">
+                            <div class="bg-purple-100 p-3 rounded-full mb-2">
+                                <i class="fas fa-tags text-purple-600"></i>
+                            </div>
+                            <span class="text-sm font-medium">Gerenciar Categorias</span>
+                        </button>
+                        
+                        <button @click="showClearDataModal = true" class="flex flex-col items-center justify-center p-4 border rounded-lg hover:bg-gray-50 transition-all">
+                            <div class="bg-red-100 p-3 rounded-full mb-2">
+                                <i class="fas fa-trash text-red-600"></i>
+                            </div>
+                            <span class="text-sm font-medium">Limpar Dados</span>
+                        </button>
                     </div>
                 </div>
-
-               <!-- Lista de Transações -->
-                <div v-if="transactionTab === 'list'" class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-2xl font-bold text-purple-800 mb-4">Transações Recentes</h2>
+                
+                <!-- Recent Transactions -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-semibold">Transações Recentes</h3>
+                        <button @click="activeView = 'transactions'" class="text-primary text-sm font-medium">Ver todas</button>
+                    </div>
+                    
                     <div class="overflow-x-auto">
-                      <table class="w-full">
-                        <thead>
-                          <tr class="bg-purple-100">
-                            <th class="p-2 text-left">Data</th>
-                            <th class="p-2 text-left">Descrição</th>
-                            <th class="p-2 text-left">Categoria</th>
-                            <th class="p-2 text-left">Valor</th>
-                            <th class="p-2 text-left">Tipo</th>
-                            <th class="p-2 text-left">Ação</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr v-for="transaction in transactions" :key="transaction.id" class="border-b">
-                            <td class="p-2">{{ formatDate(transaction.date) }}</td>
-                            <td class="p-2">{{ transaction.description }}</td>
-                            <td class="p-2">{{ transaction.category }}</td>
-                            <td class="p-2" :class="transaction.type === 'income' ? 'text-green-600' : 'text-red-600'">
-                              {{ formatCurrency(transaction.amount) }}
-                            </td>
-                            <td class="p-2">{{ transaction.type === 'income' ? 'Receita' : 'Despesa' }}</td>
-                            <td class="p-2 space-x-2">
-                              <button @click="editTransaction(transaction)" class="bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600">Editar</button>
-                              <button @click="deleteTransaction(transaction.id)" class="bg-red-500 text-white p-2 rounded hover:bg-red-600">Excluir</button>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                     <!-- Formulário de Edição -->
-                    <div v-if="editingTransaction" class="bg-white rounded-lg shadow-md p-6 mt-4">
-                        <h2 class="text-xl font-bold mb-4 text-purple-800">Editar Transação</h2>
-                        <form @submit.prevent="saveEdit">
-                          <div class="mb-2">
-                            <label class="block">Descrição:</label>
-                            <input v-model="editedTransaction.description" class="w-full p-2 border rounded" required />
-                          </div>
-                          <div class="mb-2">
-                            <label class="block">Categoria:</label>
-                            <select v-model="editedTransaction.category" class="w-full p-2 border rounded" required>
-                              <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
-                            </select>
-                          </div>
-                          <div class="mb-2">
-                            <label class="block">Valor:</label>
-                            <input v-model.number="editedTransaction.amount" type="number" class="w-full p-2 border rounded" required />
-                          </div>
-                          <div class="mb-2">
-                            <label class="block">Tipo:</label>
-                            <select v-model="editedTransaction.type" class="w-full p-2 border rounded" required>
-                              <option value="income">Receita</option>
-                              <option value="expense">Despesa</option>
-                            </select>
-                          </div>
-                          <div class="space-x-2">
-                            <button type="submit" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Salvar</button>
-                            <button type="button" @click="cancelEdit" class="bg-gray-400 text-white p-2 rounded hover:bg-gray-500">Cancelar</button>
-                          </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Histórico Mensal -->
-                <div v-if="transactionTab === 'history'" class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-2xl font-bold text-purple-800 mb-4">Histórico Mensal</h2>
-                    
-                    <div class="mb-6">
-                        <label class="block text-purple-800 font-medium mb-2">Selecione o Mês e Ano:</label>
-                        <div class="flex space-x-4">
-                            <select v-model="selectedMonth" class="p-2 border rounded flex-1">
-                                <option v-for="(month, index) in months" :key="index" :value="index">{{ month }}</option>
-                            </select>
-                            <select v-model="selectedYear" class="p-2 border rounded flex-1">
-                                <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
-                            </select>
-                            <button @click="loadMonthlyData" class="bg-purple-600 text-white p-2 rounded hover:bg-purple-700">Buscar</button>
-                        </div>
-                    </div>
-
-                    <div v-if="monthlyData" class="space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="bg-purple-100 rounded-lg shadow-md p-6">
-                                <h3 class="text-lg font-semibold text-purple-800">Total Receitas</h3>
-                                <p class="text-3xl font-bold text-green-600">{{ formatCurrency(monthlyData.totalIncome) }}</p>
-                            </div>
-                            <div class="bg-purple-100 rounded-lg shadow-md p-6">
-                                <h3 class="text-lg font-semibold text-purple-800">Total Despesas</h3>
-                                <p class="text-3xl font-bold text-red-600">{{ formatCurrency(monthlyData.totalExpenses) }}</p>
-                            </div>
-                            <div class="bg-purple-100 rounded-lg shadow-md p-6">
-                                <h3 class="text-lg font-semibold text-purple-800">Saldo do Mês</h3>
-                                <p class="text-3xl font-bold" :class="monthlyData.balance >= 0 ? 'text-green-600' : 'text-red-600'">
-                                    {{ formatCurrency(monthlyData.balance) }}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="bg-white rounded-lg shadow-md p-6">
-                            <h3 class="text-lg font-semibold text-purple-800 mb-4">Despesas por Categoria</h3>
-                            <div class="overflow-x-auto">
-                                <table class="w-full">
-                                    <thead>
-                                        <tr class="bg-purple-100">
-                                            <th class="p-2 text-left">Categoria</th>
-                                            <th class="p-2 text-left">Total Gasto</th>
-                                            <th class="p-2 text-left">% do Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="(amount, category) in monthlyData.expensesByCategory" :key="category" class="border-b">
-                                            <td class="p-2">{{ category }}</td>
-                                            <td class="p-2 text-red-600">{{ formatCurrency(amount) }}</td>
-                                            <td class="p-2">
-                                                {{ monthlyData.totalExpenses > 0 ? ((amount / monthlyData.totalExpenses) * 100).toFixed(2) : '0' }}%
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div class="bg-white rounded-lg shadow-md p-6">
-                            <h3 class="text-lg font-semibold text-purple-800 mb-4">Transações do Mês</h3>
-                            <div class="overflow-x-auto">
-                                <table class="w-full">
-                                    <thead>
-                                        <tr class="bg-purple-100">
-                                            <th class="p-2 text-left">Data</th>
-                                            <th class="p-2 text-left">Descrição</th>
-                                            <th class="p-2 text-left">Categoria</th>
-                                            <th class="p-2 text-left">Valor</th>
-                                            <th class="p-2 text-left">Tipo</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="transaction in monthlyData.transactions" :key="transaction.id" class="border-b">
-                                            <td class="p-2">{{ formatDate(transaction.date) }}</td>
-                                            <td class="p-2">{{ transaction.description }}</td>
-                                            <td class="p-2">{{ transaction.category }}</td>
-                                            <td class="p-2" :class="transaction.type === 'income' ? 'text-green-600' : 'text-red-600'">
-                                                {{ formatCurrency(transaction.amount) }}
-                                            </td>
-                                            <td class="p-2">{{ transaction.type === 'income' ? 'Receita' : 'Despesa' }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div v-else class="text-center py-8 text-purple-800">
-                        <p>Selecione um mês e ano para visualizar o histórico</p>
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-left text-gray-500 border-b">
+                                    <th class="pb-3">Data</th>
+                                    <th class="pb-3">Descrição</th>
+                                    <th class="pb-3">Categoria</th>
+                                    <th class="pb-3 text-right">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="transaction in recentTransactions" :key="transaction.id" class="border-b hover:bg-gray-50">
+                                    <td class="py-3 text-sm">{{ formatDateShort(transaction.date) }}</td>
+                                    <td class="py-3">{{ transaction.description }}</td>
+                                    <td class="py-3">
+                                        <div class="flex items-center">
+                                            <span class="w-2 h-2 rounded-full mr-2" :style="{backgroundColor: getCategoryColor(transaction.category)}"></span>
+                                            {{ transaction.category }}
+                                        </div>
+                                    </td>
+                                    <td class="py-3 text-right font-medium" :class="transaction.type === 'income' ? 'text-green-600' : 'text-red-600'">
+                                        {{ formatCurrency(transaction.amount) }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
 
-            <!-- Visão de Metas -->
-            <div v-if="activeView === 'goals'" class="space-y-6">
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-2xl font-bold text-purple-800 mb-4">Metas Financeiras</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <input v-model="newGoal.description" type="text" placeholder="Descrição da Meta" class="p-2 border rounded" aria-label="Descrição da meta">
-                        <input v-model="newGoal.target" type="number" placeholder="Valor Alvo desejado" class="p-2 border rounded" aria-label="Valor alvo da meta">
-                        <input v-model="newGoal.current" type="number" placeholder="Valor Atual disponivel em conta" class="p-2 border rounded" aria-label="Valor atual da meta">
-                        <button @click="addGoal" class="bg-purple-600 text-white p-2 rounded hover:bg-purple-700" aria-label="Adicionar meta">Adicionar Meta</button>
+            <!-- Transactions View -->
+            <div v-if="activeView === 'transactions'" class="space-y-8">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold">Transações</h2>
+                    <div class="flex space-x-2">
+                        <button @click="transactionTab = 'add'" class="btn-primary px-4 py-2 rounded-lg text-sm" :class="{'bg-primary-dark': transactionTab === 'add'}">
+                            <i class="fas fa-plus mr-2"></i> Nova Transação
+                        </button>
+                        <button @click="transactionTab = 'list'" class="btn-outline px-4 py-2 rounded-lg text-sm" :class="{'bg-primary-lighter': transactionTab === 'list'}">
+                            <i class="fas fa-list mr-2"></i> Ver Todas
+                        </button>
                     </div>
+                </div>
+                
+                <!-- Add Transaction Form -->
+                <div v-if="transactionTab === 'add'" class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-6">Adicionar Transação</h3>
+                    <form @submit.prevent="addTransaction" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Descrição</label>
+                            <input v-model="newTransaction.description" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Valor</label>
+                            <input v-model="newTransaction.amount" type="number" step="0.01" min="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Categoria</label>
+                            <select v-model="newTransaction.category" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                                <option v-for="category in categories" :key="category.name" :value="category.name">{{ category.name }}</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Tipo</label>
+                            <select v-model="newTransaction.type" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                                <option value="income">Receita</option>
+                                <option value="expense">Despesa</option>
+                            </select>
+                        </div>
+                        
+                        <div class="md:col-span-2 flex justify-end space-x-4">
+                            <button type="button" @click="resetTransactionForm" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
+                                Limpar
+                            </button>
+                            <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
+                                Adicionar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Transactions List -->
+                <div v-if="transactionTab === 'list'" class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-semibold">Todas as Transações</h3>
+                            <div class="relative">
+                                <input v-model="transactionSearch" type="text" placeholder="Buscar transações..." class="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="text-left text-gray-500 border-b">
+                                        <th class="pb-3">Data</th>
+                                        <th class="pb-3">Descrição</th>
+                                        <th class="pb-3">Categoria</th>
+                                        <th class="pb-3 text-right">Valor</th>
+                                        <th class="pb-3">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="transaction in filteredTransactions" :key="transaction.id" class="border-b hover:bg-gray-50">
+                                        <td class="py-4">{{ formatDate(transaction.date) }}</td>
+                                        <td class="py-4">{{ transaction.description }}</td>
+                                        <td class="py-4">
+                                            <div class="flex items-center">
+                                                <span class="w-2 h-2 rounded-full mr-2" :style="{backgroundColor: getCategoryColor(transaction.category)}"></span>
+                                                {{ transaction.category }}
+                                            </div>
+                                        </td>
+                                        <td class="py-4 text-right font-medium" :class="transaction.type === 'income' ? 'text-green-600' : 'text-red-600'">
+                                            {{ formatCurrency(transaction.amount) }}
+                                        </td>
+                                        <td class="py-4">
+                                            <div class="flex space-x-2">
+                                                <button @click="editTransaction(transaction)" class="text-yellow-600 hover:text-yellow-800 transition-all">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button @click="initDeleteTransaction(transaction.id)" class="text-red-600 hover:text-red-800 transition-all">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <div class="px-6 py-4 border-t flex justify-between items-center">
+                        <div class="text-sm text-gray-600">
+                            Mostrando {{ filteredTransactions.length }} de {{ transactions.length }} transações
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Transaction Edit Form -->
+                <div v-if="editingTransaction" class="bg-white rounded-xl shadow-md p-6 mt-6">
+                    <h3 class="text-lg font-semibold mb-6">Editar Transação</h3>
+                    <form @submit.prevent="saveEdit" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Descrição</label>
+                            <input v-model="editedTransaction.description" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Valor</label>
+                            <input v-model="editedTransaction.amount" type="number" step="0.01" min="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Categoria</label>
+                            <select v-model="editedTransaction.category" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                                <option v-for="category in categories" :key="category.name" :value="category.name">{{ category.name }}</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Tipo</label>
+                            <select v-model="editedTransaction.type" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                                <option value="income">Receita</option>
+                                <option value="expense">Despesa</option>
+                            </select>
+                        </div>
+                        
+                        <div class="md:col-span-2 flex justify-end space-x-4">
+                            <button type="button" @click="cancelEdit" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
+                                Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
 
-                    <div class="space-y-4">
-                        <div v-for="goal in goals" :key="goal.id" class="border rounded p-4">
-                            <div class="flex justify-between items-center mb-4">
-                                <span class="font-semibold text-purple-800">{{ goal.description }}</span>
-                                <span class="font-semibold text-purple-600">{{ formatCurrency(goal.current) }} / {{ formatCurrency(goal.target) }}</span>
+            <!-- Goals View -->
+            <div v-if="activeView === 'goals'" class="space-y-8">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold">Metas Financeiras</h2>
+                    <button @click="showGoalForm = !showGoalForm" class="btn-primary px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-plus mr-2"></i> {{ showGoalForm ? 'Cancelar' : 'Nova Meta' }}
+                    </button>
+                </div>
+                
+                <!-- Add Goal Form -->
+                <div v-if="showGoalForm" class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-6">Adicionar Meta</h3>
+                    <form @submit.prevent="addGoal" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Descrição</label>
+                            <input v-model="newGoal.description" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Valor Alvo</label>
+                            <input v-model="newGoal.target" type="number" step="0.01" min="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Valor Atual</label>
+                            <input v-model="newGoal.current" type="number" step="0.01" min="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div class="md:col-span-2 flex justify-end space-x-4">
+                            <button type="button" @click="resetGoalForm" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
+                                Limpar
+                            </button>
+                            <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
+                                Adicionar Meta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Goals List -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div v-for="goal in goals" :key="goal.id" class="bg-white rounded-xl shadow-md p-6 border-t-4 border-primary">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-lg font-semibold">{{ goal.description }}</h3>
+                            <div class="flex space-x-2">
+                                <button @click="editGoal(goal)" class="text-yellow-600 hover:text-yellow-800 transition-all">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button @click="initDeleteGoal(goal.id)" class="text-red-600 hover:text-red-800 transition-all">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
-                            <div class="w-full bg-purple-200 rounded-full">
-                                <div :style="{ width: Math.min(100, (goal.current / goal.target) * 100) + '%' }" class="h-2 bg-purple-600 rounded-full"></div>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <span class="text-gray-600">Progresso: </span>
+                            <span class="font-medium">{{ formatCurrency(goal.current) }} de {{ formatCurrency(goal.target) }}</span>
+                        </div>
+                        
+                        <div class="w-full bg-gray-200 rounded-full h-3 mb-4">
+                            <div class="h-3 rounded-full bg-gradient-to-r from-primary-light to-primary" :style="{width: `${Math.min(100, (goal.current / goal.target) * 100)}%`}"></div>
+                        </div>
+                        
+                        <div class="flex justify-between text-sm text-gray-600">
+                            <span>0%</span>
+                            <span>100%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Empty State -->
+                <div v-if="goals.length === 0" class="bg-white rounded-xl shadow-md p-12 text-center">
+                    <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                        <i class="fas fa-bullseye text-3xl text-gray-400"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Nenhuma meta cadastrada</h3>
+                    <p class="text-gray-600 mb-6">Comece criando sua primeira meta financeira para acompanhar seu progresso</p>
+                    <button @click="showGoalForm = true" class="btn-primary px-6 py-2 rounded-lg">
+                        <i class="fas fa-plus mr-2"></i> Criar Meta
+                    </button>
+                </div>
+                
+                <!-- Goal Edit Form -->
+                <div v-if="editingGoal" class="bg-white rounded-xl shadow-md p-6 mt-6">
+                    <h3 class="text-lg font-semibold mb-6">Editar Meta</h3>
+                    <form @submit.prevent="saveGoalEdit" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Descrição</label>
+                            <input v-model="editedGoal.description" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Valor Alvo</label>
+                            <input v-model.number="editedGoal.target" type="number" step="0.01" min="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Valor Atual</label>
+                            <input v-model.number="editedGoal.current" type="number" step="0.01" min="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div class="md:col-span-2 flex justify-end space-x-4">
+                            <button type="button" @click="cancelGoalEdit" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
+                                Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Categories View -->
+            <div v-if="activeView === 'categories'" class="space-y-8">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold">Categorias</h2>
+                    <button @click="showCategoryForm = !showCategoryForm" class="btn-primary px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-plus mr-2"></i> {{ showCategoryForm ? 'Cancelar' : 'Nova Categoria' }}
+                    </button>
+                </div>
+                
+                <!-- Add Category Form -->
+                <div v-if="showCategoryForm" class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-6">Adicionar Categoria</h3>
+                    <form @submit.prevent="addCategory" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Nome</label>
+                            <input v-model="newCategory.name" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Cor</label>
+                            <div class="flex items-center space-x-4">
+                                <input v-model="newCategory.color" type="color" class="w-16 h-10 border rounded-lg cursor-pointer">
+                                <span class="text-sm text-gray-600">{{ newCategory.color }}</span>
                             </div>
-                            <div class="mt-4 space-x-2">
-                                <button @click="editGoal(goal)" class="bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600">Editar</button>
-                                <button @click="deleteGoal(goal.id)" class="bg-red-500 text-white p-2 rounded hover:bg-red-600">Excluir</button>
+                        </div>
+                        
+                        <div class="md:col-span-2 flex justify-end space-x-4">
+                            <button type="button" @click="resetCategoryForm" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
+                                Limpar
+                            </button>
+                            <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
+                                Adicionar Categoria
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Categories List -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-lg font-semibold mb-6">Minhas Categorias</h3>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            <div v-for="(category, index) in categories" :key="index" class="border rounded-lg p-4 hover:shadow-md transition-all">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center">
+                                        <div class="w-4 h-4 rounded-full mr-3" :style="{backgroundColor: category.color}"></div>
+                                        <span class="font-medium">{{ category.name }}</span>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button @click="editCategory(index)" class="text-yellow-600 hover:text-yellow-800 transition-all">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button @click="initDeleteCategory(index)" class="text-red-600 hover:text-red-800 transition-all">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-sm text-gray-600">
+                                    <div class="flex justify-between mb-1">
+                                        <span>Transações:</span>
+                                        <span>{{ countTransactionsByCategory(category.name) }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Total:</span>
+                                        <span :class="getCategoryTotal(category.name) >= 0 ? 'text-green-600' : 'text-red-600'">
+                                            {{ formatCurrency(Math.abs(getCategoryTotal(category.name))) }}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Formulário de Edição de Meta -->
-                    <div v-if="editingGoal" class="bg-white rounded-lg shadow-md p-6 mt-4">
-                        <h2 class="text-xl font-bold mb-4 text-purple-800">Editar Meta</h2>
-                        <form @submit.prevent="saveGoalEdit">
-                            <div class="mb-2">
-                                <label class="block">Descrição:</label>
-                                <input v-model="editedGoal.description" class="w-full p-2 border rounded" required />
-                            </div>
-                            <div class="mb-2">
-                                <label class="block">Valor Alvo:</label>
-                                <input v-model.number="editedGoal.target" type="number" class="w-full p-2 border rounded" required />
-                            </div>
-                            <div class="mb-2">
-                                <label class="block">Valor Atual:</label>
-                                <input v-model.number="editedGoal.current" type="number" class="w-full p-2 border rounded" required />
-                            </div>
-                            <div class="space-x-2">
-                                <button type="submit" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Salvar</button>
-                                <button type="button" @click="cancelGoalEdit" class="bg-gray-400 text-white p-2 rounded hover:bg-gray-500">Cancelar</button>
-                            </div>
-                        </form>
+                    <!-- Empty State -->
+                    <div v-if="categories.length === 0" class="p-12 text-center">
+                        <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                            <i class="fas fa-tags text-3xl text-gray-400"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold mb-2">Nenhuma categoria cadastrada</h3>
+                        <p class="text-gray-600 mb-6">Crie categorias para organizar melhor suas transações</p>
+                        <button @click="showCategoryForm = true" class="btn-primary px-6 py-2 rounded-lg">
+                            <i class="fas fa-plus mr-2"></i> Criar Categoria
+                        </button>
                     </div>
+                </div>
+                
+                <!-- Category Edit Form -->
+                <div v-if="editingCategory !== null" class="bg-white rounded-xl shadow-md p-6 mt-6">
+                    <h3 class="text-lg font-semibold mb-6">Editar Categoria</h3>
+                    <form @submit.prevent="saveCategoryEdit" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Nome</label>
+                            <input v-model="editedCategory.name" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Cor</label>
+                            <div class="flex items-center space-x-4">
+                                <input v-model="editedCategory.color" type="color" class="w-16 h-10 border rounded-lg cursor-pointer">
+                                <span class="text-sm text-gray-600">{{ editedCategory.color }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="md:col-span-2 flex justify-end space-x-4">
+                            <button type="button" @click="cancelCategoryEdit" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
+                                Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-900 text-white py-12">
+            <div class="container mx-auto px-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <div>
+                        <div class="flex items-center space-x-2 mb-4">
+                            <i class="fas fa-wallet text-2xl text-primary-light"></i>
+                            <h3 class="text-xl font-bold">PurpleFinance</h3>
+                        </div>
+                        <p class="text-gray-400">Sua plataforma completa para gestão financeira pessoal.</p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-lg font-semibold mb-4">Recursos</h4>
+                        <ul class="space-y-2">
+                            <li><a href="#" @click="activeView = 'dashboard'" class="text-gray-400 hover:text-white transition-all">Dashboard</a></li>
+                            <li><a href="#" @click="activeView = 'transactions'" class="text-gray-400 hover:text-white transition-all">Transações</a></li>
+                            <li><a href="#" @click="activeView = 'goals'" class="text-gray-400 hover:text-white transition-all">Metas</a></li>
+                            <li><a href="#" @click="activeView = 'categories'" class="text-gray-400 hover:text-white transition-all">Categorias</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-lg font-semibold mb-4">Ajuda</h4>
+                        <ul class="space-y-2">
+                            <li><a href="#" class="text-gray-400 hover:text-white transition-all">Perguntas Frequentes</a></li>
+                            <li><a href="#" class="text-gray-400 hover:text-white transition-all">Tutoriais</a></li>
+                            <li><a href="#" class="text-gray-400 hover:text-white transition-all">Contato</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-lg font-semibold mb-4">Contato</h4>
+                        <ul class="space-y-2">
+                            <li class="flex items-center space-x-2">
+                                <i class="fas fa-envelope text-gray-400"></i>
+                                <span class="text-gray-400">contato@purplefinance.com</span>
+                            </li>
+                            <li class="flex items-center space-x-2">
+                                <i class="fas fa-phone text-gray-400"></i>
+                                <span class="text-gray-400">(11) 1234-5678</span>
+                            </li>
+                        </ul>
+                        
+                        <div class="mt-4 flex space-x-4">
+                            <a href="#" class="text-gray-400 hover:text-white transition-all">
+                                <i class="fab fa-facebook-f"></i>
+                            </a>
+                            <a href="#" class="text-gray-400 hover:text-white transition-all">
+                                <i class="fab fa-twitter"></i>
+                            </a>
+                            <a href="#" class="text-gray-400 hover:text-white transition-all">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                            <a href="#" class="text-gray-400 hover:text-white transition-all">
+                                <i class="fab fa-linkedin-in"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500">
+                    <p>&copy; 2023 PurpleFinance. Todos os direitos reservados.</p>
+                </div>
+            </div>
+        </footer>
+
+        <!-- Modals -->
+        <!-- Clear Data Modal -->
+        <transition name="fade">
+            <div v-if="showClearDataModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div class="bg-white rounded-xl max-w-md w-full p-6">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="bg-red-100 p-2 rounded-full">
+                            <i class="fas fa-exclamation-triangle text-red-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold">Confirmar Exclusão</h3>
+                    </div>
+                    
+                    <p class="text-gray-600 mb-6">Tem certeza que deseja excluir TODOS os dados? Esta ação não pode ser desfeita.</p>
+                    
+                    <div class="flex justify-end space-x-4">
+                        <button @click="showClearDataModal = false" class="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+                            Cancelar
+                        </button>
+                        <button @click="confirmClearData" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all">
+                            Excluir Tudo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- Delete Confirmation Modal -->
+        <transition name="fade">
+            <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div class="bg-white rounded-xl max-w-md w-full p-6">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="bg-yellow-100 p-2 rounded-full">
+                            <i class="fas fa-exclamation-circle text-yellow-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold">Confirmar Exclusão</h3>
+                    </div>
+                    
+                    <p class="text-gray-600 mb-6">{{ deleteModalMessage }}</p>
+                    
+                    <div class="flex justify-end space-x-4">
+                        <button @click="cancelDelete" class="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+                            Cancelar
+                        </button>
+                        <button @click="confirmDelete" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all">
+                            Excluir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </transition>
     </div>
 
-    <script src="/assets/js/app.js"></script>
+    <script>
+        const app = Vue.createApp({
+            data() {
+                return {
+                    activeView: 'dashboard',
+                    mobileMenuOpen: false,
+                    transactionTab: 'add',
+                    transactionSearch: '',
+                    showCategoryDetails: false,
+                    showGoalForm: false,
+                    showCategoryForm: false,
+                    
+                    categories: [
+                        { name: 'Alimentação', color: '#FF6384' },
+                        { name: 'Transporte', color: '#36A2EB' },
+                        { name: 'Lazer', color: '#FFCE56' },
+                        { name: 'Saúde', color: '#4BC0C0' },
+                        { name: 'Moradia', color: '#9966FF' },
+                        { name: 'Salário', color: '#8AC24A' }
+                    ],
+                    
+                    newCategory: { name: '', color: '#6D28D9' },
+                    editingCategory: null,
+                    editedCategory: null,
+                    
+                    transactions: [],
+                    goals: [],
+                    
+                    newTransaction: { description: '', amount: 0, category: 'Alimentação', type: 'expense' },
+                    newGoal: { description: '', target: 0, current: 0 },
+                    
+                    editingTransaction: null,
+                    editedTransaction: null,
+                    editingGoal: null,
+                    editedGoal: null,
+                    
+                    lineChartInstance: null,
+                    pieChartInstance: null,
+                    
+                    // Modals
+                    showClearDataModal: false,
+                    showDeleteModal: false,
+                    deleteModalMessage: '',
+                    itemToDelete: null,
+                    deleteType: null
+                };
+            },
+            
+            computed: {
+                balance() {
+                    return this.transactions.reduce((sum, transaction) => {
+                        return transaction.type === 'income' ? sum + transaction.amount : sum - transaction.amount;
+                    }, 0);
+                },
+                
+                monthlyIncome() {
+                    const currentMonth = new Date().getMonth();
+                    const currentYear = new Date().getFullYear();
+                    
+                    return this.transactions
+                        .filter(t => {
+                            const date = new Date(t.date);
+                            return date.getMonth() === currentMonth && 
+                                   date.getFullYear() === currentYear && 
+                                   t.type === 'income';
+                        })
+                        .reduce((sum, t) => sum + t.amount, 0);
+                },
+                
+                monthlyExpenses() {
+                    const currentMonth = new Date().getMonth();
+                    const currentYear = new Date().getFullYear();
+                    
+                    return this.transactions
+                        .filter(t => {
+                            const date = new Date(t.date);
+                            return date.getMonth() === currentMonth && 
+                                   date.getFullYear() === currentYear && 
+                                   t.type === 'expense';
+                        })
+                        .reduce((sum, t) => sum + t.amount, 0);
+                },
+                
+                recentTransactions() {
+                    return [...this.transactions]
+                        .sort((a, b) => new Date(b.date) - new Date(a.date))
+                        .slice(0, 5);
+                },
+                
+                filteredTransactions() {
+                    if (!this.transactionSearch) return this.transactions;
+                    
+                    const searchTerm = this.transactionSearch.toLowerCase();
+                    return this.transactions.filter(t => 
+                        t.description.toLowerCase().includes(searchTerm) || 
+                        t.category.toLowerCase().includes(searchTerm)
+                    );
+                },
+                
+                expensesByCategory() {
+                    const result = {};
+                    const currentMonth = new Date().getMonth();
+                    const currentYear = new Date().getFullYear();
+                    
+                    this.transactions.forEach(t => {
+                        const date = new Date(t.date);
+                        if (date.getMonth() === currentMonth && 
+                            date.getFullYear() === currentYear && 
+                            t.type === 'expense') {
+                            
+                            if (!result[t.category]) {
+                                result[t.category] = 0;
+                            }
+                            result[t.category] += t.amount;
+                        }
+                    });
+                    
+                    return result;
+                }
+            },
+            
+            methods: {
+                // Category Methods
+                addCategory() {
+                    if (this.newCategory.name.trim()) {
+                        this.categories.push({
+                            name: this.newCategory.name.trim(),
+                            color: this.newCategory.color
+                        });
+                        this.resetCategoryForm();
+                        this.saveData();
+                        this.renderCharts();
+                    }
+                },
+                
+                editCategory(index) {
+                    this.editingCategory = index;
+                    this.editedCategory = { ...this.categories[index] };
+                    this.showCategoryForm = false;
+                },
+                
+                saveCategoryEdit() {
+                    if (this.editingCategory !== null && this.editedCategory.name.trim()) {
+                        this.categories[this.editingCategory] = { ...this.editedCategory };
+                        this.cancelCategoryEdit();
+                        this.saveData();
+                        this.renderCharts();
+                    }
+                },
+                
+                cancelCategoryEdit() {
+                    this.editingCategory = null;
+                    this.editedCategory = null;
+                },
+                
+                resetCategoryForm() {
+                    this.newCategory = { name: '', color: '#6D28D9' };
+                    this.showCategoryForm = false;
+                },
+                
+                initDeleteCategory(index) {
+                    this.itemToDelete = index;
+                    this.deleteType = 'category';
+                    this.deleteModalMessage = `Tem certeza que deseja excluir a categoria "${this.categories[index].name}"? Todas as transações associadas serão marcadas como "Sem categoria".`;
+                    this.showDeleteModal = true;
+                },
+                
+                countTransactionsByCategory(categoryName) {
+                    return this.transactions.filter(t => t.category === categoryName).length;
+                },
+                
+                getCategoryTotal(categoryName) {
+                    return this.transactions.reduce((sum, t) => {
+                        if (t.category === categoryName) {
+                            return t.type === 'income' ? sum + t.amount : sum - t.amount;
+                        }
+                        return sum;
+                    }, 0);
+                },
+                
+                // Transaction Methods
+                addTransaction() {
+                    if (this.newTransaction.description && this.newTransaction.amount > 0) {
+                        this.transactions.push({
+                            id: Date.now(),
+                            description: this.newTransaction.description,
+                            amount: parseFloat(this.newTransaction.amount),
+                            category: this.newTransaction.category,
+                            type: this.newTransaction.type,
+                            date: new Date().toISOString()
+                        });
+                        this.resetTransactionForm();
+                        this.saveData();
+                        this.renderCharts();
+                    }
+                },
+                
+                editTransaction(transaction) {
+                    this.editingTransaction = transaction.id;
+                    this.editedTransaction = { ...transaction };
+                    this.transactionTab = 'list';
+                },
+                
+                saveEdit() {
+                    const index = this.transactions.findIndex(t => t.id === this.editingTransaction);
+                    if (index !== -1) {
+                        this.transactions[index] = { ...this.editedTransaction };
+                        this.saveData();
+                        this.cancelEdit();
+                        this.renderCharts();
+                    }
+                },
+                
+                cancelEdit() {
+                    this.editingTransaction = null;
+                    this.editedTransaction = null;
+                },
+                
+                resetTransactionForm() {
+                    this.newTransaction = { 
+                        description: '', 
+                        amount: 0, 
+                        category: this.categories[0]?.name || 'Outros', 
+                        type: 'expense' 
+                    };
+                },
+                
+                initDeleteTransaction(id) {
+                    const transaction = this.transactions.find(t => t.id === id);
+                    this.itemToDelete = id;
+                    this.deleteType = 'transaction';
+                    this.deleteModalMessage = `Tem certeza que deseja excluir a transação "${transaction.description}" de ${this.formatCurrency(transaction.amount)}?`;
+                    this.showDeleteModal = true;
+                },
+                
+                // Goal Methods
+                addGoal() {
+                    if (this.newGoal.description && this.newGoal.target > 0) {
+                        this.goals.push({
+                            id: Date.now(),
+                            description: this.newGoal.description,
+                            target: parseFloat(this.newGoal.target),
+                            current: parseFloat(this.newGoal.current)
+                        });
+                        this.resetGoalForm();
+                        this.saveData();
+                    }
+                },
+                
+                editGoal(goal) {
+                    this.editingGoal = goal.id;
+                    this.editedGoal = { ...goal };
+                    this.showGoalForm = false;
+                },
+                
+                saveGoalEdit() {
+                    const index = this.goals.findIndex(g => g.id === this.editingGoal);
+                    if (index !== -1) {
+                        this.goals[index] = { ...this.editedGoal };
+                        this.saveData();
+                        this.cancelGoalEdit();
+                    }
+                },
+                
+                cancelGoalEdit() {
+                    this.editingGoal = null;
+                    this.editedGoal = null;
+                },
+                
+                resetGoalForm() {
+                    this.newGoal = { description: '', target: 0, current: 0 };
+                    this.showGoalForm = false;
+                },
+                
+                initDeleteGoal(id) {
+                    const goal = this.goals.find(g => g.id === id);
+                    this.itemToDelete = id;
+                    this.deleteType = 'goal';
+                    this.deleteModalMessage = `Tem certeza que deseja excluir a meta "${goal.description}"?`;
+                    this.showDeleteModal = true;
+                },
+                
+                // Modal Methods
+                confirmDelete() {
+                    if (this.deleteType === 'transaction') {
+                        this.transactions = this.transactions.filter(transaction => transaction.id !== this.itemToDelete);
+                    } else if (this.deleteType === 'goal') {
+                        this.goals = this.goals.filter(goal => goal.id !== this.itemToDelete);
+                    } else if (this.deleteType === 'category') {
+                        // Before deleting, update transactions with this category to "Uncategorized"
+                        const categoryName = this.categories[this.itemToDelete].name;
+                        this.transactions.forEach(t => {
+                            if (t.category === categoryName) {
+                                t.category = 'Outros';
+                            }
+                        });
+                        this.categories.splice(this.itemToDelete, 1);
+                    }
+                    
+                    this.saveData();
+                    if (this.deleteType !== 'goal') {
+                        this.renderCharts();
+                    }
+                    this.cancelDelete();
+                },
+                
+                cancelDelete() {
+                    this.showDeleteModal = false;
+                    this.itemToDelete = null;
+                    this.deleteType = null;
+                    this.deleteModalMessage = '';
+                },
+                
+                confirmClearData() {
+                    this.clearData();
+                    this.showClearDataModal = false;
+                },
+                
+                // Helper Methods
+                getCategoryColor(categoryName) {
+                    const category = this.categories.find(c => c.name === categoryName);
+                    return category ? category.color : '#CCCCCC';
+                },
+                
+                formatCurrency(amount) {
+                    return new Intl.NumberFormat('pt-BR', { 
+                        style: 'currency', 
+                        currency: 'BRL' 
+                    }).format(amount);
+                },
+                
+                formatDate(dateString) {
+                    const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+                    return new Date(dateString).toLocaleDateString('pt-BR', options);
+                },
+                
+                formatDateShort(dateString) {
+                    const options = { day: '2-digit', month: '2-digit' };
+                    return new Date(dateString).toLocaleDateString('pt-BR', options);
+                },
+                
+                clearData() {
+                    localStorage.removeItem('transactions');
+                    localStorage.removeItem('goals');
+                    localStorage.removeItem('categories');
+                    this.transactions = [];
+                    this.goals = [];
+                    this.categories = [
+                        { name: 'Alimentação', color: '#FF6384' },
+                        { name: 'Transporte', color: '#36A2EB' },
+                        { name: 'Lazer', color: '#FFCE56' },
+                        { name: 'Saúde', color: '#4BC0C0' },
+                        { name: 'Moradia', color: '#9966FF' },
+                        { name: 'Salário', color: '#8AC24A' }
+                    ];
+                    this.renderCharts();
+                },
+                
+                saveData() {
+                    localStorage.setItem('transactions', JSON.stringify(this.transactions));
+                    localStorage.setItem('goals', JSON.stringify(this.goals));
+                    localStorage.setItem('categories', JSON.stringify(this.categories));
+                },
+                
+                renderCharts() {
+                    this.renderPieChart();
+                    this.renderLineChart();
+                },
+                
+                renderPieChart() {
+                    const ctx = this.$refs.pieChart;
+                    
+                    if (this.pieChartInstance) {
+                        this.pieChartInstance.destroy();
+                    }
+                    
+                    if (!ctx) return;
+                    
+                    const categoryNames = this.categories.map(c => c.name);
+                    const data = categoryNames.map(category => {
+                        return this.transactions
+                            .filter(t => t.category === category && t.type === 'expense')
+                            .reduce((sum, t) => sum + t.amount, 0);
+                    });
+                    
+                    const backgroundColors = this.categories.map(c => c.color);
+                    
+                    this.pieChartInstance = new Chart(ctx, {
+                        type: 'pie',
+                        data: {
+                            labels: categoryNames,
+                            datasets: [{
+                                data: data,
+                                backgroundColor: backgroundColors,
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'right',
+                                    labels: {
+                                        usePointStyle: true,
+                                        padding: 20
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const label = context.label || '';
+                                            const value = context.raw || 0;
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                            return `${label}: ${new Intl.NumberFormat('pt-BR', { 
+                                                style: 'currency', 
+                                                currency: 'BRL' 
+                                            }).format(value)} (${percentage}%)`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                },
+                
+                renderLineChart() {
+                    const ctx = this.$refs.lineChart;
+                    
+                    if (this.lineChartInstance) {
+                        this.lineChartInstance.destroy();
+                    }
+                    
+                    if (!ctx) return;
+                    
+                    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                    const currentMonth = new Date().getMonth();
+                    
+                    const displayMonths = [];
+                    for (let i = 5; i >= 0; i--) {
+                        const monthIndex = (currentMonth - i + 12) % 12;
+                        displayMonths.push(months[monthIndex]);
+                    }
+                    
+                    const incomeData = displayMonths.map((_, index) => {
+                        const monthIndex = (currentMonth - 5 + index + 12) % 12;
+                        return this.transactions
+                            .filter(t => {
+                                const date = new Date(t.date);
+                                return date.getMonth() === monthIndex && t.type === 'income';
+                            })
+                            .reduce((sum, t) => sum + t.amount, 0);
+                    });
+                    
+                    const expenseData = displayMonths.map((_, index) => {
+                        const monthIndex = (currentMonth - 5 + index + 12) % 12;
+                        return this.transactions
+                            .filter(t => {
+                                const date = new Date(t.date);
+                                return date.getMonth() === monthIndex && t.type === 'expense';
+                            })
+                            .reduce((sum, t) => sum + t.amount, 0);
+                    });
+                    
+                    this.lineChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: displayMonths,
+                            datasets: [
+                                {
+                                    label: 'Receitas',
+                                    data: incomeData,
+                                    borderColor: '#10B981',
+                                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                    tension: 0.3,
+                                    fill: true,
+                                    borderWidth: 2,
+                                    pointBackgroundColor: '#10B981',
+                                    pointRadius: 4
+                                },
+                                {
+                                    label: 'Despesas',
+                                    data: expenseData,
+                                    borderColor: '#EF4444',
+                                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                    tension: 0.3,
+                                    fill: true,
+                                    borderWidth: 2,
+                                    pointBackgroundColor: '#EF4444',
+                                    pointRadius: 4
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                    labels: {
+                                        usePointStyle: true
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const label = context.dataset.label || '';
+                                            const value = context.raw || 0;
+                                            return `${label}: ${new Intl.NumberFormat('pt-BR', { 
+                                                style: 'currency', 
+                                                currency: 'BRL' 
+                                            }).format(value)}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return new Intl.NumberFormat('pt-BR', { 
+                                                style: 'currency', 
+                                                currency: 'BRL' 
+                                            }).format(value);
+                                        }
+                                    },
+                                    grid: {
+                                        color: 'rgba(0, 0, 0, 0.05)'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            },
+            
+            mounted() {
+                const savedTransactions = JSON.parse(localStorage.getItem('transactions')) || [];
+                const savedGoals = JSON.parse(localStorage.getItem('goals')) || [];
+                const savedCategories = JSON.parse(localStorage.getItem('categories')) || this.categories;
+                
+                this.transactions = savedTransactions;
+                this.goals = savedGoals;
+                this.categories = savedCategories.length ? savedCategories : this.categories;
+                
+                // Definir categoria padrão para nova transação
+                if (this.categories.length > 0) {
+                    this.newTransaction.category = this.categories[0].name;
+                }
+                
+                this.renderCharts();
+            }
+        });
+        
+        app.mount('#app');
+    </script>
 </body>
 </html>
