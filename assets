@@ -1,1 +1,87 @@
-
+ <style>
+        :root {
+            --primary: #6D28D9;
+            --primary-light: #8B5CF6;
+            --primary-lighter: #C4B5FD;
+            --primary-dark: #5B21B6;
+            --accent: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --text: #1F2937;
+            --text-light: #6B7280;
+            --bg: #F9FAFB;
+            --bg-card: #FFFFFF;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            background-color: var(--bg);
+        }
+        
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .btn-outline {
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .btn-outline:hover {
+            background-color: var(--primary-lighter);
+        }
+        
+        .text-primary {
+            color: var(--primary);
+        }
+        
+        .bg-primary {
+            background-color: var(--primary);
+        }
+        
+        .border-primary {
+            border-color: var(--primary);
+        }
+        
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.3s;
+        }
+        .fade-enter, .fade-leave-to {
+            opacity: 0;
+        }
+        
+        .nav-link {
+            position: relative;
+        }
+        
+        .nav-link.active:after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-menu {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .mobile-menu.open {
+                transform: translateX(0);
+            }
+        }
+    </style>
