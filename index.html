@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PurpleFinance | Gestão Financeira Pessoal Inteligente</title>
+    <title>PurpleFinance | Gestão Financeira Inteligente</title>
     <meta name="description" content="Controle suas finanças de forma simples e eficiente com o PurpleFinance. Planeje, acompanhe e alcance suas metas financeiras.">
+    
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="manifest.json">
     
     <!-- Fontes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,9 +20,13 @@
     <!-- Framework CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     
-    <!-- Vue.js e Chart.js -->
+    <!-- Bibliotecas JS -->
     <script src="https://unpkg.com/vue@3.2.47/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
         :root {
@@ -34,12 +41,41 @@
             --text-light: #6B7280;
             --bg: #F9FAFB;
             --bg-card: #FFFFFF;
+            --bg-dark: #1E293B;
+            --text-dark: #E2E8F0;
         }
         
         body {
             font-family: 'Inter', sans-serif;
             color: var(--text);
             background-color: var(--bg);
+            transition: all 0.3s ease;
+        }
+        
+        body.dark {
+            color: var(--text-dark);
+            background-color: var(--bg-dark);
+            --bg-card: #334155;
+            --text: #E2E8F0;
+            --text-light: #94A3B8;
+            --bg: #1E293B;
+        }
+        
+        .dark .card {
+            background-color: var(--bg-card);
+            border-color: #475569;
+        }
+        
+        .dark .border-gray-200 {
+            border-color: #475569;
+        }
+        
+        .dark .text-gray-600 {
+            color: #94A3B8;
+        }
+        
+        .dark .bg-white {
+            background-color: #334155;
         }
         
         .transition-all {
@@ -107,9 +143,61 @@
                 transform: translateX(0);
             }
         }
+        
+        .widget {
+            cursor: move;
+        }
+        
+        .heatmap-day {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            border-radius: 4px;
+        }
+        
+        .budget-progress {
+            transition: width 0.6s ease;
+        }
+        
+        .high-contrast {
+            --primary: #000000;
+            --primary-light: #333333;
+            --primary-lighter: #666666;
+            --primary-dark: #000000;
+            --accent: #006600;
+            --danger: #990000;
+            --warning: #996600;
+            --text: #000000;
+            --text-light: #333333;
+            --bg: #FFFFFF;
+            --bg-card: #FFFFFF;
+            --bg-dark: #FFFFFF;
+            --text-dark: #000000;
+        }
+        
+        .high-contrast body {
+            background-color: #FFFFFF !important;
+            color: #000000 !important;
+        }
+        
+        .high-contrast .card {
+            background-color: #FFFFFF !important;
+            border: 2px solid #000000 !important;
+        }
+        
+        .high-contrast .text-gray-600 {
+            color: #000000 !important;
+        }
+        
+        .high-contrast .bg-white {
+            background-color: #FFFFFF !important;
+        }
     </style>
 </head>
-<body>
+<body :class="{'dark': darkMode, 'high-contrast': highContrast}">
     <div id="app">
         <!-- Header -->
         <header class="bg-primary text-white shadow-md">
@@ -120,20 +208,34 @@
                         <h1 class="text-2xl font-bold">PurpleFinance</h1>
                     </div>
                     
-                    <!-- Desktop Navigation -->
-                    <nav class="hidden md:block">
-                        <ul class="flex space-x-8">
-                            <li><a href="#" @click="activeView = 'dashboard'" class="nav-link transition-all hover:opacity-80" :class="{'active': activeView === 'dashboard'}">Dashboard</a></li>
-                            <li><a href="#" @click="activeView = 'transactions'" class="nav-link transition-all hover:opacity-80" :class="{'active': activeView === 'transactions'}">Transações</a></li>
-                            <li><a href="#" @click="activeView = 'goals'" class="nav-link transition-all hover:opacity-80" :class="{'active': activeView === 'goals'}">Metas</a></li>
-                            <li><a href="#" @click="activeView = 'categories'" class="nav-link transition-all hover:opacity-80" :class="{'active': activeView === 'categories'}">Categorias</a></li>
-                        </ul>
-                    </nav>
-                    
-                    <!-- Mobile Menu Button -->
-                    <button @click="mobileMenuOpen = !mobileMenuOpen" class="md:hidden text-2xl">
-                        <i class="fas fa-bars"></i>
-                    </button>
+                    <div class="flex items-center space-x-4">
+                        <!-- Theme Toggle -->
+                        <button @click="toggleDarkMode" class="p-2 rounded-full hover:bg-primary-dark transition-all">
+                            <i :class="darkMode ? 'fas fa-sun' : 'fas fa-moon'"></i>
+                        </button>
+                        
+                        <!-- High Contrast Toggle -->
+                        <button @click="toggleHighContrast" class="p-2 rounded-full hover:bg-primary-dark transition-all">
+                            <i class="fas fa-adjust"></i>
+                        </button>
+                        
+                        <!-- Desktop Navigation -->
+                        <nav class="hidden md:block">
+                            <ul class="flex space-x-8">
+                                <li><a href="#" @click="activeView = 'dashboard'" class="nav-link transition-all hover:opacity-80" :class="{'active': activeView === 'dashboard'}">Dashboard</a></li>
+                                <li><a href="#" @click="activeView = 'transactions'" class="nav-link transition-all hover:opacity-80" :class="{'active': activeView === 'transactions'}">Transações</a></li>
+                                <li><a href="#" @click="activeView = 'goals'" class="nav-link transition-all hover:opacity-80" :class="{'active': activeView === 'goals'}">Metas</a></li>
+                                <li><a href="#" @click="activeView = 'categories'" class="nav-link transition-all hover:opacity-80" :class="{'active': activeView === 'categories'}">Categorias</a></li>
+                                <li><a href="#" @click="activeView = 'accounts'" class="nav-link transition-all hover:opacity-80" :class="{'active': activeView === 'accounts'}">Contas</a></li>
+                                <li><a href="#" @click="activeView = 'budgets'" class="nav-link transition-all hover:opacity-80" :class="{'active': activeView === 'budgets'}">Orçamentos</a></li>
+                            </ul>
+                        </nav>
+                        
+                        <!-- Mobile Menu Button -->
+                        <button @click="mobileMenuOpen = !mobileMenuOpen" class="md:hidden text-2xl">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
             
@@ -155,36 +257,49 @@
                         <li><a href="#" @click="activeView = 'transactions'; mobileMenuOpen = false" class="block py-2 px-4 rounded transition-all hover:bg-primary-dark" :class="{'bg-primary-dark': activeView === 'transactions'}">Transações</a></li>
                         <li><a href="#" @click="activeView = 'goals'; mobileMenuOpen = false" class="block py-2 px-4 rounded transition-all hover:bg-primary-dark" :class="{'bg-primary-dark': activeView === 'goals'}">Metas</a></li>
                         <li><a href="#" @click="activeView = 'categories'; mobileMenuOpen = false" class="block py-2 px-4 rounded transition-all hover:bg-primary-dark" :class="{'bg-primary-dark': activeView === 'categories'}">Categorias</a></li>
+                        <li><a href="#" @click="activeView = 'accounts'; mobileMenuOpen = false" class="block py-2 px-4 rounded transition-all hover:bg-primary-dark" :class="{'bg-primary-dark': activeView === 'accounts'}">Contas</a></li>
+                        <li><a href="#" @click="activeView = 'budgets'; mobileMenuOpen = false" class="block py-2 px-4 rounded transition-all hover:bg-primary-dark" :class="{'bg-primary-dark': activeView === 'budgets'}">Orçamentos</a></li>
                     </ul>
                 </nav>
+                
+                <div class="mt-8 pt-4 border-t border-primary-light">
+                    <button @click="toggleDarkMode" class="w-full text-left py-2 px-4 rounded transition-all hover:bg-primary-dark">
+                        <i :class="darkMode ? 'fas fa-sun mr-2' : 'fas fa-moon mr-2'"></i>
+                        {{ darkMode ? 'Tema Claro' : 'Tema Escuro' }}
+                    </button>
+                    <button @click="toggleHighContrast" class="w-full text-left py-2 px-4 rounded transition-all hover:bg-primary-dark">
+                        <i class="fas fa-adjust mr-2"></i>
+                        {{ highContrast ? 'Contraste Normal' : 'Alto Contraste' }}
+                    </button>
+                </div>
             </div>
         </header>
 
         <!-- Main Content -->
         <main class="container mx-auto px-4 py-8">
-            <!-- Hero Section (Dashboard only) -->
-            <section v-if="activeView === 'dashboard'" class="mb-12 text-center">
-                <h2 class="text-3xl md:text-4xl font-bold mb-4">Controle suas finanças com simplicidade</h2>
-                <p class="text-lg text-gray-600 max-w-2xl mx-auto">O PurpleFinance ajuda você a gerenciar seu dinheiro, acompanhar gastos e alcançar suas metas financeiras de forma intuitiva.</p>
-            </section>
-
             <!-- Dashboard View -->
             <div v-if="activeView === 'dashboard'" class="space-y-8">
+                <!-- Hero Section -->
+                <section class="mb-12 text-center">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-4">Controle suas finanças com simplicidade</h2>
+                    <p class="text-lg text-gray-600 max-w-2xl mx-auto">O PurpleFinance ajuda você a gerenciar seu dinheiro, acompanhar gastos e alcançar suas metas financeiras de forma intuitiva.</p>
+                </section>
+
                 <!-- Balance Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-primary">
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-primary card">
                         <div class="flex items-center space-x-4">
                             <div class="bg-primary-light bg-opacity-20 p-3 rounded-full">
                                 <i class="fas fa-wallet text-primary text-xl"></i>
                             </div>
                             <div>
                                 <h3 class="text-gray-500 font-medium">Saldo Atual</h3>
-                                <p class="text-2xl font-bold" :class="balance >= 0 ? 'text-green-600' : 'text-red-600'">{{ formatCurrency(balance) }}</p>
+                                <p class="text-2xl font-bold" :class="totalBalance >= 0 ? 'text-green-600' : 'text-red-600'">{{ formatCurrency(totalBalance) }}</p>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500 card">
                         <div class="flex items-center space-x-4">
                             <div class="bg-green-100 p-3 rounded-full">
                                 <i class="fas fa-arrow-down text-green-600 text-xl"></i>
@@ -196,7 +311,7 @@
                         </div>
                     </div>
                     
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-500">
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-500 card">
                         <div class="flex items-center space-x-4">
                             <div class="bg-red-100 p-3 rounded-full">
                                 <i class="fas fa-arrow-up text-red-600 text-xl"></i>
@@ -211,16 +326,24 @@
                 
                 <!-- Charts Section -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="bg-white rounded-xl shadow-md p-6 card">
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="text-lg font-semibold">Despesas por Categoria</h3>
-                            <button @click="showCategoryDetails = !showCategoryDetails" class="text-primary text-sm font-medium">
-                                {{ showCategoryDetails ? 'Ver gráfico' : 'Ver detalhes' }}
-                            </button>
+                            <div class="flex space-x-2">
+                                <select v-model="chartPeriod" @change="renderCharts" class="px-3 py-1 border rounded-lg text-sm focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                                    <option value="1">Último mês</option>
+                                    <option value="3">Últimos 3 meses</option>
+                                    <option value="6">Últimos 6 meses</option>
+                                    <option value="12">Últimos 12 meses</option>
+                                </select>
+                                <button @click="showCategoryDetails = !showCategoryDetails" class="text-primary text-sm font-medium">
+                                    {{ showCategoryDetails ? 'Ver gráfico' : 'Ver detalhes' }}
+                                </button>
+                            </div>
                         </div>
                         
                         <div v-if="!showCategoryDetails">
-                            <canvas ref="pieChart" class="max-h-80"></canvas>
+                            <canvas ref="pieChart" class="max-h-80" @click="handlePieClick"></canvas>
                         </div>
                         
                         <div v-else class="space-y-4">
@@ -242,14 +365,37 @@
                         </div>
                     </div>
                     
-                    <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="bg-white rounded-xl shadow-md p-6 card">
                         <h3 class="text-lg font-semibold mb-6">Tendência Mensal</h3>
                         <canvas ref="lineChart" class="max-h-80"></canvas>
                     </div>
                 </div>
                 
+                <!-- Additional Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow-md p-6 card">
+                        <h3 class="text-lg font-semibold mb-6">Receitas vs Despesas</h3>
+                        <canvas ref="barChart" class="max-h-80"></canvas>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6 card">
+                        <h3 class="text-lg font-semibold mb-6">Evolução do Saldo</h3>
+                        <canvas ref="balanceChart" class="max-h-80"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Heatmap Section -->
+                <div class="bg-white rounded-xl shadow-md p-6 card">
+                    <h3 class="text-lg font-semibold mb-6">Distribuição de Gastos por Dia da Semana</h3>
+                    <div class="overflow-x-auto">
+                        <div class="heatmap-container">
+                            <canvas ref="heatmapChart" class="max-h-80"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Quick Actions -->
-                <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="bg-white rounded-xl shadow-md p-6 card">
                     <h3 class="text-lg font-semibold mb-4">Ações Rápidas</h3>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <button @click="activeView = 'transactions'; transactionTab = 'add'" class="flex flex-col items-center justify-center p-4 border rounded-lg hover:bg-gray-50 transition-all">
@@ -283,7 +429,7 @@
                 </div>
                 
                 <!-- Recent Transactions -->
-                <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="bg-white rounded-xl shadow-md p-6 card">
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-lg font-semibold">Transações Recentes</h3>
                         <button @click="activeView = 'transactions'" class="text-primary text-sm font-medium">Ver todas</button>
@@ -317,6 +463,46 @@
                         </table>
                     </div>
                 </div>
+                
+                <!-- Budget Alerts -->
+                <div v-if="budgetAlerts.length > 0" class="bg-white rounded-xl shadow-md p-6 card">
+                    <h3 class="text-lg font-semibold mb-4">Alertas de Orçamento</h3>
+                    <div class="space-y-4">
+                        <div v-for="alert in budgetAlerts" :key="alert.category" class="p-4 border rounded-lg" :class="{'border-yellow-400 bg-yellow-50': alert.percentage >= 80 && alert.percentage < 100, 'border-red-400 bg-red-50': alert.percentage >= 100}">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-medium">{{ alert.category }}</h4>
+                                <span class="text-sm font-semibold" :class="{'text-yellow-600': alert.percentage >= 80 && alert.percentage < 100, 'text-red-600': alert.percentage >= 100}">
+                                    {{ alert.percentage }}% do orçamento
+                                </span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="h-2 rounded-full" :class="{'bg-yellow-400': alert.percentage >= 80 && alert.percentage < 100, 'bg-red-500': alert.percentage >= 100}" :style="{width: `${Math.min(100, alert.percentage)}%`}"></div>
+                            </div>
+                            <div class="flex justify-between text-sm text-gray-600 mt-2">
+                                <span>Gasto: {{ formatCurrency(alert.spent) }}</span>
+                                <span>Orçamento: {{ formatCurrency(alert.budget) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Balance Projection -->
+                <div class="bg-white rounded-xl shadow-md p-6 card">
+                    <h3 class="text-lg font-semibold mb-4">Projeção de Saldo</h3>
+                    <div class="mb-4">
+                        <p class="text-gray-600 mb-2">Com base nos seus gastos médios, seu saldo no final do mês será:</p>
+                        <p class="text-2xl font-bold" :class="projectedBalance >= 0 ? 'text-green-600' : 'text-red-600'">
+                            {{ formatCurrency(projectedBalance) }}
+                        </p>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="h-2 rounded-full" :class="projectedBalance >= 0 ? 'bg-green-500' : 'bg-red-500'" :style="{width: `${Math.min(100, (Math.abs(totalBalance) / (Math.abs(totalBalance) + Math.abs(projectedBalance))) * 100)}%`}"></div>
+                    </div>
+                    <div class="flex justify-between text-sm text-gray-600 mt-2">
+                        <span>Saldo atual: {{ formatCurrency(totalBalance) }}</span>
+                        <span>Projeção: {{ formatCurrency(projectedBalance) }}</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Transactions View -->
@@ -330,11 +516,14 @@
                         <button @click="transactionTab = 'list'" class="btn-outline px-4 py-2 rounded-lg text-sm" :class="{'bg-primary-lighter': transactionTab === 'list'}">
                             <i class="fas fa-list mr-2"></i> Ver Todas
                         </button>
+                        <button @click="exportTransactions" class="btn-outline px-4 py-2 rounded-lg text-sm">
+                            <i class="fas fa-file-export mr-2"></i> Exportar
+                        </button>
                     </div>
                 </div>
                 
                 <!-- Add Transaction Form -->
-                <div v-if="transactionTab === 'add'" class="bg-white rounded-xl shadow-md p-6">
+                <div v-if="transactionTab === 'add'" class="bg-white rounded-xl shadow-md p-6 card">
                     <h3 class="text-lg font-semibold mb-6">Adicionar Transação</h3>
                     <form @submit.prevent="addTransaction" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -362,6 +551,28 @@
                             </select>
                         </div>
                         
+                        <div>
+                            <label class="block text-gray-700 mb-2">Data</label>
+                            <input v-model="newTransaction.date" type="date" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Conta</label>
+                            <select v-model="newTransaction.account" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                                <option v-for="account in accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
+                            </select>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-gray-700 mb-2">Tags (separadas por vírgula)</label>
+                            <input v-model="newTransaction.tags" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-gray-700 mb-2">Comprovante</label>
+                            <input type="file" @change="handleReceiptUpload" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" accept="image/*,.pdf">
+                        </div>
+                        
                         <div class="md:col-span-2 flex justify-end space-x-4">
                             <button type="button" @click="resetTransactionForm" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
                                 Limpar
@@ -374,13 +585,26 @@
                 </div>
                 
                 <!-- Transactions List -->
-                <div v-if="transactionTab === 'list'" class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div v-if="transactionTab === 'list'" class="bg-white rounded-xl shadow-md overflow-hidden card">
                     <div class="p-6">
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="text-lg font-semibold">Todas as Transações</h3>
-                            <div class="relative">
-                                <input v-model="transactionSearch" type="text" placeholder="Buscar transações..." class="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
-                                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            <div class="flex space-x-2">
+                                <div class="relative">
+                                    <input v-model="transactionSearch" type="text" placeholder="Buscar transações..." class="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                                </div>
+                                <select v-model="transactionFilter" class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                                    <option value="all">Todas</option>
+                                    <option value="income">Receitas</option>
+                                    <option value="expense">Despesas</option>
+                                </select>
+                                <select v-model="transactionPeriod" class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                                    <option value="all">Todo período</option>
+                                    <option value="month">Este mês</option>
+                                    <option value="last3">Últimos 3 meses</option>
+                                    <option value="year">Este ano</option>
+                                </select>
                             </div>
                         </div>
                         
@@ -391,6 +615,7 @@
                                         <th class="pb-3">Data</th>
                                         <th class="pb-3">Descrição</th>
                                         <th class="pb-3">Categoria</th>
+                                        <th class="pb-3">Conta</th>
                                         <th class="pb-3 text-right">Valor</th>
                                         <th class="pb-3">Ações</th>
                                     </tr>
@@ -398,12 +623,22 @@
                                 <tbody>
                                     <tr v-for="transaction in filteredTransactions" :key="transaction.id" class="border-b hover:bg-gray-50">
                                         <td class="py-4">{{ formatDate(transaction.date) }}</td>
-                                        <td class="py-4">{{ transaction.description }}</td>
+                                        <td class="py-4">
+                                            {{ transaction.description }}
+                                            <div v-if="transaction.tags" class="flex flex-wrap gap-1 mt-1">
+                                                <span v-for="tag in transaction.tags.split(',')" :key="tag" class="text-xs px-2 py-1 bg-gray-100 rounded-full">
+                                                    {{ tag.trim() }}
+                                                </span>
+                                            </div>
+                                        </td>
                                         <td class="py-4">
                                             <div class="flex items-center">
                                                 <span class="w-2 h-2 rounded-full mr-2" :style="{backgroundColor: getCategoryColor(transaction.category)}"></span>
                                                 {{ transaction.category }}
                                             </div>
+                                        </td>
+                                        <td class="py-4">
+                                            {{ getAccountName(transaction.account) }}
                                         </td>
                                         <td class="py-4 text-right font-medium" :class="transaction.type === 'income' ? 'text-green-600' : 'text-red-600'">
                                             {{ formatCurrency(transaction.amount) }}
@@ -415,6 +650,9 @@
                                                 </button>
                                                 <button @click="initDeleteTransaction(transaction.id)" class="text-red-600 hover:text-red-800 transition-all">
                                                     <i class="fas fa-trash"></i>
+                                                </button>
+                                                <button v-if="transaction.receipt" @click="viewReceipt(transaction)" class="text-blue-600 hover:text-blue-800 transition-all">
+                                                    <i class="fas fa-paperclip"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -429,11 +667,19 @@
                         <div class="text-sm text-gray-600">
                             Mostrando {{ filteredTransactions.length }} de {{ transactions.length }} transações
                         </div>
+                        <div class="flex space-x-2">
+                            <button @click="currentPage = Math.max(1, currentPage - 1)" :disabled="currentPage === 1" class="px-3 py-1 border rounded-lg disabled:opacity-50">
+                                Anterior
+                            </button>
+                            <button @click="currentPage = currentPage + 1" :disabled="currentPage * itemsPerPage >= transactions.length" class="px-3 py-1 border rounded-lg disabled:opacity-50">
+                                Próxima
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
                 <!-- Transaction Edit Form -->
-                <div v-if="editingTransaction" class="bg-white rounded-xl shadow-md p-6 mt-6">
+                <div v-if="editingTransaction" class="bg-white rounded-xl shadow-md p-6 mt-6 card">
                     <h3 class="text-lg font-semibold mb-6">Editar Transação</h3>
                     <form @submit.prevent="saveEdit" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -461,6 +707,34 @@
                             </select>
                         </div>
                         
+                        <div>
+                            <label class="block text-gray-700 mb-2">Data</label>
+                            <input v-model="editedTransaction.date" type="date" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Conta</label>
+                            <select v-model="editedTransaction.account" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                                <option v-for="account in accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
+                            </select>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-gray-700 mb-2">Tags (separadas por vírgula)</label>
+                            <input v-model="editedTransaction.tags" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-gray-700 mb-2">Comprovante</label>
+                            <div v-if="editedTransaction.receipt" class="flex items-center space-x-2 mb-2">
+                                <span class="text-sm text-gray-600">Comprovante anexado</span>
+                                <button @click="removeReceipt(editedTransaction)" class="text-red-600 hover:text-red-800 text-sm">
+                                    <i class="fas fa-trash"></i> Remover
+                                </button>
+                            </div>
+                            <input type="file" @change="handleReceiptUploadEdit" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" accept="image/*,.pdf">
+                        </div>
+                        
                         <div class="md:col-span-2 flex justify-end space-x-4">
                             <button type="button" @click="cancelEdit" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
                                 Cancelar
@@ -483,7 +757,7 @@
                 </div>
                 
                 <!-- Add Goal Form -->
-                <div v-if="showGoalForm" class="bg-white rounded-xl shadow-md p-6">
+                <div v-if="showGoalForm" class="bg-white rounded-xl shadow-md p-6 card">
                     <h3 class="text-lg font-semibold mb-6">Adicionar Meta</h3>
                     <form @submit.prevent="addGoal" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -501,6 +775,33 @@
                             <input v-model="newGoal.current" type="number" step="0.01" min="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
                         </div>
                         
+                        <div>
+                            <label class="block text-gray-700 mb-2">Tipo de Meta</label>
+                            <select v-model="newGoal.type" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                                <option value="save">Economizar valor total</option>
+                                <option value="monthly">Economizar mensalmente</option>
+                                <option value="save">Conta pendente</option>
+                            </select>
+                        </div>
+                        
+                        <div v-if="newGoal.type === 'save'">
+                            <label class="block text-gray-700 mb-2">Data Alvo</label>
+                            <input v-model="newGoal.targetDate" type="date" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                        </div>
+                        
+                        <div v-if="newGoal.type === 'monthly'">
+                            <label class="block text-gray-700 mb-2">Valor Mensal Sugerido</label>
+                            <input :value="calculateMonthlySuggestion(newGoal)" type="text" class="w-full px-4 py-2 border rounded-lg bg-gray-100" readonly>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-gray-700 mb-2">Categoria (opcional)</label>
+                            <select v-model="newGoal.category" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                                <option value="">Nenhuma categoria específica</option>
+                                <option v-for="category in categories" :key="category.name" :value="category.name">{{ category.name }}</option>
+                            </select>
+                        </div>
+                        
                         <div class="md:col-span-2 flex justify-end space-x-4">
                             <button type="button" @click="resetGoalForm" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
                                 Limpar
@@ -514,9 +815,17 @@
                 
                 <!-- Goals List -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div v-for="goal in goals" :key="goal.id" class="bg-white rounded-xl shadow-md p-6 border-t-4 border-primary">
+                    <div v-for="goal in goals" :key="goal.id" class="bg-white rounded-xl shadow-md p-6 border-t-4 border-primary card">
                         <div class="flex justify-between items-start mb-4">
-                            <h3 class="text-lg font-semibold">{{ goal.description }}</h3>
+                            <div>
+                                <h3 class="text-lg font-semibold">{{ goal.description }}</h3>
+                                <p v-if="goal.category" class="text-sm text-gray-600 mt-1">
+                                    Categoria: {{ goal.category }}
+                                </p>
+                                <p v-if="goal.type === 'save' && goal.targetDate" class="text-sm text-gray-600 mt-1">
+                                    Data alvo: {{ formatDate(goal.targetDate) }}
+                                </p>
+                            </div>
                             <div class="flex space-x-2">
                                 <button @click="editGoal(goal)" class="text-yellow-600 hover:text-yellow-800 transition-all">
                                     <i class="fas fa-edit"></i>
@@ -530,6 +839,9 @@
                         <div class="mb-2">
                             <span class="text-gray-600">Progresso: </span>
                             <span class="font-medium">{{ formatCurrency(goal.current) }} de {{ formatCurrency(goal.target) }}</span>
+                            <span class="text-sm text-gray-600 ml-2">
+                                ({{ Math.min(100, Math.round((goal.current / goal.target) * 100)) }}%)
+                            </span>
                         </div>
                         
                         <div class="w-full bg-gray-200 rounded-full h-3 mb-4">
@@ -540,11 +852,40 @@
                             <span>0%</span>
                             <span>100%</span>
                         </div>
+                        
+                        <div v-if="goal.type === 'save' && goal.targetDate" class="mt-4">
+                            <p class="text-sm text-gray-600">
+                                <span v-if="daysRemaining(goal) > 0">
+                                    Faltam {{ daysRemaining(goal) }} dias ({{ formatDate(goal.targetDate) }})
+                                </span>
+                                <span v-else class="text-red-600">
+                                    Data alvo já passou ({{ formatDate(goal.targetDate) }})
+                                </span>
+                            </p>
+                            <p class="text-sm font-medium mt-1">
+                                Valor sugerido por mês: {{ formatCurrency(calculateMonthlySuggestion(goal)) }}
+                            </p>
+                        </div>
+                        
+                        <div v-if="goal.type === 'monthly'" class="mt-4">
+                            <p class="text-sm text-gray-600">
+                                Meta mensal: {{ formatCurrency(goal.target) }}
+                            </p>
+                            <p class="text-sm font-medium mt-1">
+                                Progresso neste mês: {{ formatCurrency(getMonthlyProgress(goal)) }} / {{ formatCurrency(goal.target) }}
+                            </p>
+                        </div>
+                        
+                        <div class="mt-4 pt-4 border-t">
+                            <button @click="addToGoal(goal)" class="text-sm text-primary hover:text-primary-dark font-medium">
+                                <i class="fas fa-plus mr-1"></i> Adicionar valor
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
                 <!-- Empty State -->
-                <div v-if="goals.length === 0" class="bg-white rounded-xl shadow-md p-12 text-center">
+                <div v-if="goals.length === 0" class="bg-white rounded-xl shadow-md p-12 text-center card">
                     <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
                         <i class="fas fa-bullseye text-3xl text-gray-400"></i>
                     </div>
@@ -556,7 +897,7 @@
                 </div>
                 
                 <!-- Goal Edit Form -->
-                <div v-if="editingGoal" class="bg-white rounded-xl shadow-md p-6 mt-6">
+                <div v-if="editingGoal" class="bg-white rounded-xl shadow-md p-6 mt-6 card">
                     <h3 class="text-lg font-semibold mb-6">Editar Meta</h3>
                     <form @submit.prevent="saveGoalEdit" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -574,6 +915,32 @@
                             <input v-model.number="editedGoal.current" type="number" step="0.01" min="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
                         </div>
                         
+                        <div>
+                            <label class="block text-gray-700 mb-2">Tipo de Meta</label>
+                            <select v-model="editedGoal.type" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                                <option value="save">Economizar valor total</option>
+                                <option value="monthly">Economizar mensalmente</option>
+                            </select>
+                        </div>
+                        
+                        <div v-if="editedGoal.type === 'save'">
+                            <label class="block text-gray-700 mb-2">Data Alvo</label>
+                            <input v-model="editedGoal.targetDate" type="date" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                        </div>
+                        
+                        <div v-if="editedGoal.type === 'monthly'">
+                            <label class="block text-gray-700 mb-2">Valor Mensal Sugerido</label>
+                            <input :value="calculateMonthlySuggestion(editedGoal)" type="text" class="w-full px-4 py-2 border rounded-lg bg-gray-100" readonly>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-gray-700 mb-2">Categoria (opcional)</label>
+                            <select v-model="editedGoal.category" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                                <option value="">Nenhuma categoria específica</option>
+                                <option v-for="category in categories" :key="category.name" :value="category.name">{{ category.name }}</option>
+                            </select>
+                        </div>
+                        
                         <div class="md:col-span-2 flex justify-end space-x-4">
                             <button type="button" @click="cancelGoalEdit" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
                                 Cancelar
@@ -584,6 +951,47 @@
                         </div>
                     </form>
                 </div>
+                
+                <!-- Add to Goal Modal -->
+                <transition name="fade">
+                    <div v-if="showAddToGoalModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div class="bg-white rounded-xl max-w-md w-full p-6 card">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-semibold">Adicionar valor à meta</h3>
+                                <button @click="showAddToGoalModal = false" class="text-gray-500 hover:text-gray-700">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <p class="text-gray-600 mb-2">{{ selectedGoal.description }}</p>
+                                <p class="font-medium">
+                                    {{ formatCurrency(selectedGoal.current) }} de {{ formatCurrency(selectedGoal.target) }}
+                                    ({{ Math.min(100, Math.round((selectedGoal.current / selectedGoal.target) * 100)) }}%)
+                                </p>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="block text-gray-700 mb-2">Valor a adicionar</label>
+                                <input v-model="amountToAdd" type="number" step="0.01" min="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" placeholder="0,00">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="block text-gray-700 mb-2">Descrição (opcional)</label>
+                                <input v-model="goalAdditionDescription" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" placeholder="Ex: Economia de junho">
+                            </div>
+                            
+                            <div class="flex justify-end space-x-4">
+                                <button @click="showAddToGoalModal = false" class="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+                                    Cancelar
+                                </button>
+                                <button @click="confirmAddToGoal" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-all">
+                                    Adicionar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </transition>
             </div>
 
             <!-- Categories View -->
@@ -596,7 +1004,7 @@
                 </div>
                 
                 <!-- Add Category Form -->
-                <div v-if="showCategoryForm" class="bg-white rounded-xl shadow-md p-6">
+                <div v-if="showCategoryForm" class="bg-white rounded-xl shadow-md p-6 card">
                     <h3 class="text-lg font-semibold mb-6">Adicionar Categoria</h3>
                     <form @submit.prevent="addCategory" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -612,6 +1020,37 @@
                             </div>
                         </div>
                         
+                        <div>
+                            <label class="block text-gray-700 mb-2">Ícone</label>
+                            <select v-model="newCategory.icon" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                                <option value="shopping-cart">Compras</option>
+                                <option value="utensils">Alimentação</option>
+                                <option value="car">Transporte</option>
+                                <option value="home">Moradia</option>
+                                <option value="heart">Saúde</option>
+                                <option value="film">Entretenimento</option>
+                                <option value="graduation-cap">Educação</option>
+                                <option value="tshirt">Vestuário</option>
+                                <option value="money-bill-wave">Salário</option>
+                                <option value="gift">Presentes</option>
+                                <option value="tag">Outros</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Tipo</label>
+                            <select v-model="newCategory.type" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                                <option value="expense">Despesa</option>
+                                <option value="income">Receita</option>
+                                <option value="both">Ambos</option>
+                            </select>
+                        </div>
+                        
+                        <div v-if="newCategory.type !== 'income'" class="md:col-span-2">
+                            <label class="block text-gray-700 mb-2">Orçamento Mensal (opcional)</label>
+                            <input v-model="newCategory.budget" type="number" step="0.01" min="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" placeholder="Deixe em branco para sem orçamento">
+                        </div>
+                        
                         <div class="md:col-span-2 flex justify-end space-x-4">
                             <button type="button" @click="resetCategoryForm" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
                                 Limpar
@@ -624,7 +1063,7 @@
                 </div>
                 
                 <!-- Categories List -->
-                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card">
                     <div class="p-6">
                         <h3 class="text-lg font-semibold mb-6">Minhas Categorias</h3>
                         
@@ -632,7 +1071,9 @@
                             <div v-for="(category, index) in categories" :key="index" class="border rounded-lg p-4 hover:shadow-md transition-all">
                                 <div class="flex items-center justify-between mb-3">
                                     <div class="flex items-center">
-                                        <div class="w-4 h-4 rounded-full mr-3" :style="{backgroundColor: category.color}"></div>
+                                        <div class="w-8 h-8 rounded-full mr-3 flex items-center justify-center" :style="{backgroundColor: category.color, color: getContrastColor(category.color)}">
+                                            <i class="fas fa-{{ category.icon }}"></i>
+                                        </div>
                                         <span class="font-medium">{{ category.name }}</span>
                                     </div>
                                     <div class="flex space-x-2">
@@ -656,6 +1097,20 @@
                                             {{ formatCurrency(Math.abs(getCategoryTotal(category.name))) }}
                                         </span>
                                     </div>
+                                    
+                                    <div v-if="category.budget && category.type !== 'income'" class="mt-2">
+                                        <div class="flex justify-between text-xs mb-1">
+                                            <span>Orçamento:</span>
+                                            <span>{{ formatCurrency(category.budget) }}</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                            <div class="h-1.5 rounded-full" :class="getBudgetPercentage(category) >= 100 ? 'bg-red-500' : getBudgetPercentage(category) >= 80 ? 'bg-yellow-500' : 'bg-green-500'" 
+                                                 :style="{width: `${Math.min(100, getBudgetPercentage(category))}%`}"></div>
+                                        </div>
+                                        <div class="text-right text-xs mt-1">
+                                            {{ Math.round(getBudgetPercentage(category)) }}%
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -675,7 +1130,7 @@
                 </div>
                 
                 <!-- Category Edit Form -->
-                <div v-if="editingCategory !== null" class="bg-white rounded-xl shadow-md p-6 mt-6">
+                <div v-if="editingCategory !== null" class="bg-white rounded-xl shadow-md p-6 mt-6 card">
                     <h3 class="text-lg font-semibold mb-6">Editar Categoria</h3>
                     <form @submit.prevent="saveCategoryEdit" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -691,8 +1146,421 @@
                             </div>
                         </div>
                         
+                        <div>
+                            <label class="block text-gray-700 mb-2">Ícone</label>
+                            <select v-model="editedCategory.icon" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                                <option value="shopping-cart">Compras</option>
+                                <option value="utensils">Alimentação</option>
+                                <option value="car">Transporte</option>
+                                <option value="home">Moradia</option>
+                                <option value="heart">Saúde</option>
+                                <option value="film">Entretenimento</option>
+                                <option value="graduation-cap">Educação</option>
+                                <option value="tshirt">Vestuário</option>
+                                <option value="money-bill-wave">Salário</option>
+                                <option value="gift">Presentes</option>
+                                <option value="tag">Outros</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Tipo</label>
+                            <select v-model="editedCategory.type" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                                <option value="expense">Despesa</option>
+                                <option value="income">Receita</option>
+                                <option value="both">Ambos</option>
+                            </select>
+                        </div>
+                        
+                        <div v-if="editedCategory.type !== 'income'" class="md:col-span-2">
+                            <label class="block text-gray-700 mb-2">Orçamento Mensal (opcional)</label>
+                            <input v-model="editedCategory.budget" type="number" step="0.01" min="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" placeholder="Deixe em branco para sem orçamento">
+                        </div>
+                        
                         <div class="md:col-span-2 flex justify-end space-x-4">
                             <button type="button" @click="cancelCategoryEdit" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
+                                Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Accounts View -->
+            <div v-if="activeView === 'accounts'" class="space-y-8">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold">Contas Bancárias</h2>
+                    <button @click="showAccountForm = !showAccountForm" class="btn-primary px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-plus mr-2"></i> {{ showAccountForm ? 'Cancelar' : 'Nova Conta' }}
+                    </button>
+                </div>
+                
+                <!-- Add Account Form -->
+                <div v-if="showAccountForm" class="bg-white rounded-xl shadow-md p-6 card">
+                    <h3 class="text-lg font-semibold mb-6">Adicionar Conta</h3>
+                    <form @submit.prevent="addAccount" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Nome da Conta</label>
+                            <input v-model="newAccount.name" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Tipo de Conta</label>
+                            <select v-model="newAccount.type" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                                <option value="checking">Conta Corrente</option>
+                                <option value="savings">Conta Poupança</option>
+                                <option value="credit">Cartão de Crédito</option>
+                                <option value="investment">Investimentos</option>
+                                <option value="cash">Dinheiro</option>
+                                <option value="other">Outro</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Saldo Inicial</label>
+                            <input v-model="newAccount.balance" type="number" step="0.01" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Cor</label>
+                            <div class="flex items-center space-x-4">
+                                <input v-model="newAccount.color" type="color" class="w-16 h-10 border rounded-lg cursor-pointer">
+                                <span class="text-sm text-gray-600">{{ newAccount.color }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-gray-700 mb-2">Descrição (opcional)</label>
+                            <input v-model="newAccount.description" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                        </div>
+                        
+                        <div class="md:col-span-2 flex justify-end space-x-4">
+                            <button type="button" @click="resetAccountForm" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
+                                Limpar
+                            </button>
+                            <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
+                                Adicionar Conta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Accounts List -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div v-for="account in accounts" :key="account.id" class="bg-white rounded-xl shadow-md p-6 border-t-4 card" :style="{borderColor: account.color}">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-lg font-semibold">{{ account.name }}</h3>
+                                <p class="text-sm text-gray-600 capitalize">{{ account.type }}</p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button @click="editAccount(account)" class="text-yellow-600 hover:text-yellow-800 transition-all">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button @click="initDeleteAccount(account.id)" class="text-red-600 hover:text-red-800 transition-all">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <p class="text-2xl font-bold" :class="getAccountBalance(account.id) >= 0 ? 'text-green-600' : 'text-red-600'">
+                                {{ formatCurrency(getAccountBalance(account.id)) }}
+                            </p>
+                        </div>
+                        
+                        <div v-if="account.description" class="text-sm text-gray-600 mb-4">
+                            {{ account.description }}
+                        </div>
+                        
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Transações:</span>
+                            <span>{{ countTransactionsByAccount(account.id) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Empty State -->
+                <div v-if="accounts.length === 0" class="bg-white rounded-xl shadow-md p-12 text-center card">
+                    <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                        <i class="fas fa-wallet text-3xl text-gray-400"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Nenhuma conta cadastrada</h3>
+                    <p class="text-gray-600 mb-6">Adicione suas contas bancárias para começar a controlar suas finanças</p>
+                    <button @click="showAccountForm = true" class="btn-primary px-6 py-2 rounded-lg">
+                        <i class="fas fa-plus mr-2"></i> Adicionar Conta
+                    </button>
+                </div>
+                
+                <!-- Account Edit Form -->
+                <div v-if="editingAccount" class="bg-white rounded-xl shadow-md p-6 mt-6 card">
+                    <h3 class="text-lg font-semibold mb-6">Editar Conta</h3>
+                    <form @submit.prevent="saveAccountEdit" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Nome da Conta</label>
+                            <input v-model="editedAccount.name" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Tipo de Conta</label>
+                            <select v-model="editedAccount.type" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                                <option value="checking">Conta Corrente</option>
+                                <option value="savings">Conta Poupança</option>
+                                <option value="credit">Cartão de Crédito</option>
+                                <option value="investment">Investimentos</option>
+                                <option value="cash">Dinheiro</option>
+                                <option value="other">Outro</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Saldo Atual</label>
+                            <input v-model="editedAccount.balance" type="number" step="0.01" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Cor</label>
+                            <div class="flex items-center space-x-4">
+                                <input v-model="editedAccount.color" type="color" class="w-16 h-10 border rounded-lg cursor-pointer">
+                                <span class="text-sm text-gray-600">{{ editedAccount.color }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-gray-700 mb-2">Descrição (opcional)</label>
+                            <input v-model="editedAccount.description" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all">
+                        </div>
+                        
+                        <div class="md:col-span-2 flex justify-end space-x-4">
+                            <button type="button" @click="cancelAccountEdit" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
+                                Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Transfer Between Accounts -->
+                <div class="bg-white rounded-xl shadow-md p-6 mt-6 card">
+                    <h3 class="text-lg font-semibold mb-6">Transferência entre Contas</h3>
+                    <form @submit.prevent="makeTransfer" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-700 mb-2">De</label>
+                            <select v-model="transfer.fromAccount" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                                <option v-for="account in accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Para</label>
+                            <select v-model="transfer.toAccount" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                                <option v-for="account in accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Valor</label>
+                            <input v-model="transfer.amount" type="number" step="0.01" min="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Data</label>
+                            <input v-model="transfer.date" type="date" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-gray-700 mb-2">Descrição (opcional)</label>
+                            <input v-model="transfer.description" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" placeholder="Ex: Transferência mensal">
+                        </div>
+                        
+                        <div class="md:col-span-2 flex justify-end space-x-4">
+                            <button type="button" @click="resetTransferForm" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
+                                Limpar
+                            </button>
+                            <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
+                                Realizar Transferência
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Budgets View -->
+            <div v-if="activeView === 'budgets'" class="space-y-8">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold">Orçamentos</h2>
+                    <button @click="showBudgetForm = !showBudgetForm" class="btn-primary px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-plus mr-2"></i> {{ showBudgetForm ? 'Cancelar' : 'Novo Orçamento' }}
+                    </button>
+                </div>
+                
+                <!-- Add Budget Form -->
+                <div v-if="showBudgetForm" class="bg-white rounded-xl shadow-md p-6 card">
+                    <h3 class="text-lg font-semibold mb-6">Adicionar Orçamento</h3>
+                    <form @submit.prevent="addBudget" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Categoria</label>
+                            <select v-model="newBudget.category" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                                <option v-for="category in expenseCategories" :key="category.name" :value="category.name">{{ category.name }}</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Valor do Orçamento</label>
+                            <input v-model="newBudget.amount" type="number" step="0.01" min="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Período</label>
+                            <select v-model="newBudget.period" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                                <option value="monthly">Mensal</option>
+                                <option value="weekly">Semanal</option>
+                                <option value="yearly">Anual</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Mês/Ano</label>
+                            <input v-model="newBudget.monthYear" type="month" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-gray-700 mb-2">Notificações</label>
+                            <div class="flex items-center space-x-4">
+                                <label class="inline-flex items-center">
+                                    <input v-model="newBudget.notify" type="checkbox" class="rounded border-gray-300 text-primary focus:ring-primary-light">
+                                    <span class="ml-2">Receber alertas</span>
+                                </label>
+                                <div v-if="newBudget.notify" class="flex-1">
+                                    <input v-model="newBudget.notifyAt" type="number" min="1" max="100" class="w-20 px-3 py-1 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" placeholder="80">
+                                    <span class="ml-2 text-sm text-gray-600">% do orçamento</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="md:col-span-2 flex justify-end space-x-4">
+                            <button type="button" @click="resetBudgetForm" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
+                                Limpar
+                            </button>
+                            <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
+                                Adicionar Orçamento
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Budgets List -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div v-for="budget in budgets" :key="budget.id" class="bg-white rounded-xl shadow-md p-6 card">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-lg font-semibold">{{ budget.category }}</h3>
+                                <p class="text-sm text-gray-600 capitalize">
+                                    {{ budget.period === 'monthly' ? 'Mensal' : budget.period === 'weekly' ? 'Semanal' : 'Anual' }} - 
+                                    {{ formatMonthYear(budget.monthYear) }}
+                                </p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button @click="editBudget(budget)" class="text-yellow-600 hover:text-yellow-800 transition-all">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button @click="initDeleteBudget(budget.id)" class="text-red-600 hover:text-red-800 transition-all">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span>Gasto:</span>
+                                <span>{{ formatCurrency(getBudgetSpending(budget)) }}</span>
+                            </div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span>Orçamento:</span>
+                                <span>{{ formatCurrency(budget.amount) }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                            <div class="h-2 rounded-full" :class="getBudgetPercentage(budget) >= 100 ? 'bg-red-500' : getBudgetPercentage(budget) >= 80 ? 'bg-yellow-500' : 'bg-green-500'" 
+                                 :style="{width: `${Math.min(100, getBudgetPercentage(budget))}%`}"></div>
+                        </div>
+                        
+                        <div class="flex justify-between text-xs text-gray-600">
+                            <span>0%</span>
+                            <span>{{ Math.round(getBudgetPercentage(budget)) }}%</span>
+                            <span>100%</span>
+                        </div>
+                        
+                        <div v-if="budget.notify" class="mt-4 pt-4 border-t text-sm text-gray-600">
+                            <i class="fas fa-bell mr-1"></i> Alertas ativados em {{ budget.notifyAt }}%
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Empty State -->
+                <div v-if="budgets.length === 0" class="bg-white rounded-xl shadow-md p-12 text-center card">
+                    <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                        <i class="fas fa-chart-pie text-3xl text-gray-400"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Nenhum orçamento cadastrado</h3>
+                    <p class="text-gray-600 mb-6">Crie orçamentos para controlar melhor seus gastos por categoria</p>
+                    <button @click="showBudgetForm = true" class="btn-primary px-6 py-2 rounded-lg">
+                        <i class="fas fa-plus mr-2"></i> Criar Orçamento
+                    </button>
+                </div>
+                
+                <!-- Budget Edit Form -->
+                <div v-if="editingBudget" class="bg-white rounded-xl shadow-md p-6 mt-6 card">
+                    <h3 class="text-lg font-semibold mb-6">Editar Orçamento</h3>
+                    <form @submit.prevent="saveBudgetEdit" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Categoria</label>
+                            <select v-model="editedBudget.category" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                                <option v-for="category in expenseCategories" :key="category.name" :value="category.name">{{ category.name }}</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Valor do Orçamento</label>
+                            <input v-model="editedBudget.amount" type="number" step="0.01" min="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Período</label>
+                            <select v-model="editedBudget.period" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                                <option value="monthly">Mensal</option>
+                                <option value="weekly">Semanal</option>
+                                <option value="yearly">Anual</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Mês/Ano</label>
+                            <input v-model="editedBudget.monthYear" type="month" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" required>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-gray-700 mb-2">Notificações</label>
+                            <div class="flex items-center space-x-4">
+                                <label class="inline-flex items-center">
+                                    <input v-model="editedBudget.notify" type="checkbox" class="rounded border-gray-300 text-primary focus:ring-primary-light">
+                                    <span class="ml-2">Receber alertas</span>
+                                </label>
+                                <div v-if="editedBudget.notify" class="flex-1">
+                                    <input v-model="editedBudget.notifyAt" type="number" min="1" max="100" class="w-20 px-3 py-1 border rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all" placeholder="80">
+                                    <span class="ml-2 text-sm text-gray-600">% do orçamento</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="md:col-span-2 flex justify-end space-x-4">
+                            <button type="button" @click="cancelBudgetEdit" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
                                 Cancelar
                             </button>
                             <button type="submit" class="btn-primary px-6 py-2 rounded-lg">
@@ -723,6 +1591,8 @@
                             <li><a href="#" @click="activeView = 'transactions'" class="text-gray-400 hover:text-white transition-all">Transações</a></li>
                             <li><a href="#" @click="activeView = 'goals'" class="text-gray-400 hover:text-white transition-all">Metas</a></li>
                             <li><a href="#" @click="activeView = 'categories'" class="text-gray-400 hover:text-white transition-all">Categorias</a></li>
+                            <li><a href="#" @click="activeView = 'accounts'" class="text-gray-400 hover:text-white transition-all">Contas</a></li>
+                            <li><a href="#" @click="activeView = 'budgets'" class="text-gray-400 hover:text-white transition-all">Orçamentos</a></li>
                         </ul>
                     </div>
                     
@@ -766,7 +1636,7 @@
                 </div>
                 
                 <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500">
-                    <p>&copy; 2023 PurpleFinance. Todos os direitos reservados.</p>
+                    <p>&copy; 2025 PurpleFinance. Todos os direitos reservados MATHEUS FREITAS.</p>
                 </div>
             </div>
         </footer>
@@ -775,7 +1645,7 @@
         <!-- Clear Data Modal -->
         <transition name="fade">
             <div v-if="showClearDataModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                <div class="bg-white rounded-xl max-w-md w-full p-6">
+                <div class="bg-white rounded-xl max-w-md w-full p-6 card">
                     <div class="flex items-center space-x-3 mb-4">
                         <div class="bg-red-100 p-2 rounded-full">
                             <i class="fas fa-exclamation-triangle text-red-600"></i>
@@ -800,7 +1670,7 @@
         <!-- Delete Confirmation Modal -->
         <transition name="fade">
             <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                <div class="bg-white rounded-xl max-w-md w-full p-6">
+                <div class="bg-white rounded-xl max-w-md w-full p-6 card">
                     <div class="flex items-center space-x-3 mb-4">
                         <div class="bg-yellow-100 p-2 rounded-full">
                             <i class="fas fa-exclamation-circle text-yellow-600"></i>
@@ -821,9 +1691,87 @@
                 </div>
             </div>
         </transition>
+        
+        <!-- Receipt Modal -->
+        <transition name="fade">
+            <div v-if="showReceiptModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div class="bg-white rounded-xl max-w-2xl w-full p-6 card">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold">Comprovante</h3>
+                        <button @click="showReceiptModal = false" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div v-if="currentReceipt" class="flex flex-col items-center">
+                        <div v-if="currentReceipt.type === 'image'" class="mb-4">
+                            <img :src="currentReceipt.url" alt="Comprovante" class="max-h-96 rounded-lg">
+                        </div>
+                        <div v-else-if="currentReceipt.type === 'pdf'" class="w-full h-96 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <div class="text-center">
+                                <i class="fas fa-file-pdf text-5xl text-red-500 mb-2"></i>
+                                <p class="text-gray-600">Arquivo PDF</p>
+                                <a :href="currentReceipt.url" download class="text-primary hover:text-primary-dark mt-2 inline-block">
+                                    <i class="fas fa-download mr-1"></i> Baixar
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 text-sm text-gray-600">
+                            <p>Transação: {{ currentReceiptTransaction.description }}</p>
+                            <p>Valor: {{ formatCurrency(currentReceiptTransaction.amount) }}</p>
+                            <p>Data: {{ formatDate(currentReceiptTransaction.date) }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </transition>
+        
+        <!-- Notification -->
+        <transition name="fade">
+            <div v-if="notification.show" class="fixed bottom-4 right-4 bg-white shadow-lg rounded-lg p-4 max-w-xs z-50 card" :class="{'bg-green-100 text-green-800': notification.type === 'success', 'bg-red-100 text-red-800': notification.type === 'error', 'bg-blue-100 text-blue-800': notification.type === 'info'}">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <i v-if="notification.type === 'success'" class="fas fa-check-circle text-green-500"></i>
+                        <i v-if="notification.type === 'error'" class="fas fa-exclamation-circle text-red-500"></i>
+                        <i v-if="notification.type === 'info'" class="fas fa-info-circle text-blue-500"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium">{{ notification.title }}</h3>
+                        <p class="text-sm mt-1">{{ notification.message }}</p>
+                    </div>
+                    <button @click="notification.show = false" class="ml-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 inline-flex h-8 w-8 focus:outline-none">
+                        <span class="sr-only">Fechar</span>
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </transition>
+        
+        <!-- Install PWA Prompt -->
+        <transition name="fade">
+            <div v-if="showInstallPrompt" class="fixed bottom-0 left-0 right-0 bg-white shadow-lg p-4 z-50 card">
+                <div class="container mx-auto flex items-center justify-between">
+                    <div>
+                        <h3 class="font-semibold">Instalar PurpleFinance</h3>
+                        <p class="text-sm text-gray-600">Adicione o PurpleFinance à sua tela inicial para uma melhor experiência</p>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button @click="dismissInstallPrompt" class="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
+                            Depois
+                        </button>
+                        <button @click="installPWA" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-all">
+                            Instalar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </transition>
     </div>
 
     <script>
+        const { jsPDF } = window.jspdf;
+        
         const app = Vue.createApp({
             data() {
                 return {
@@ -831,28 +1779,87 @@
                     mobileMenuOpen: false,
                     transactionTab: 'add',
                     transactionSearch: '',
+                    transactionFilter: 'all',
+                    transactionPeriod: 'month',
+                    currentPage: 1,
+                    itemsPerPage: 10,
                     showCategoryDetails: false,
                     showGoalForm: false,
                     showCategoryForm: false,
+                    showAccountForm: false,
+                    showBudgetForm: false,
+                    showAddToGoalModal: false,
+                    selectedGoal: null,
+                    amountToAdd: 0,
+                    goalAdditionDescription: '',
+                    chartPeriod: '1',
+                    
+                    darkMode: false,
+                    highContrast: false,
                     
                     categories: [
-                        { name: 'Alimentação', color: '#FF6384' },
-                        { name: 'Transporte', color: '#36A2EB' },
-                        { name: 'Lazer', color: '#FFCE56' },
-                        { name: 'Saúde', color: '#4BC0C0' },
-                        { name: 'Moradia', color: '#9966FF' },
-                        { name: 'Salário', color: '#8AC24A' }
+                        { name: 'Alimentação', color: '#FF6384', icon: 'utensils', type: 'expense' },
+                        { name: 'Transporte', color: '#36A2EB', icon: 'car', type: 'expense' },
+                        { name: 'Lazer', color: '#FFCE56', icon: 'film', type: 'expense' },
+                        { name: 'Saúde', color: '#4BC0C0', icon: 'heart', type: 'expense' },
+                        { name: 'Moradia', color: '#9966FF', icon: 'home', type: 'expense' },
+                        { name: 'Salário', color: '#8AC24A', icon: 'money-bill-wave', type: 'income' }
                     ],
                     
-                    newCategory: { name: '', color: '#6D28D9' },
+                    newCategory: { name: '', color: '#6D28D9', icon: 'tag', type: 'expense', budget: null },
                     editingCategory: null,
                     editedCategory: null,
+                    
+                    accounts: [
+                        { id: 1, name: 'Conta Corrente', type: 'checking', balance: 5000, color: '#6D28D9', description: 'Banco Principal' },
+                        { id: 2, name: 'Cartão de Crédito', type: 'credit', balance: 0, color: '#EF4444', description: 'Visa Platinum' }
+                    ],
+                    
+                    newAccount: { name: '', type: 'checking', balance: 0, color: '#6D28D9', description: '' },
+                    editingAccount: null,
+                    editedAccount: null,
+                    
+                    transfer: {
+                        fromAccount: null,
+                        toAccount: null,
+                        amount: 0,
+                        date: new Date().toISOString().split('T')[0],
+                        description: ''
+                    },
+                    
+                    budgets: [],
+                    newBudget: {
+                        category: '',
+                        amount: 0,
+                        period: 'monthly',
+                        monthYear: new Date().toISOString().split('T')[0].substring(0, 7),
+                        notify: false,
+                        notifyAt: 80
+                    },
+                    editingBudget: null,
+                    editedBudget: null,
                     
                     transactions: [],
                     goals: [],
                     
-                    newTransaction: { description: '', amount: 0, category: 'Alimentação', type: 'expense' },
-                    newGoal: { description: '', target: 0, current: 0 },
+                    newTransaction: { 
+                        description: '', 
+                        amount: 0, 
+                        category: 'Alimentação', 
+                        type: 'expense',
+                        date: new Date().toISOString().split('T')[0],
+                        account: 1,
+                        tags: '',
+                        receipt: null
+                    },
+                    newGoal: { 
+                        description: '', 
+                        target: 0, 
+                        current: 0,
+                        type: 'save',
+                        targetDate: '',
+                        category: ''
+                    },
                     
                     editingTransaction: null,
                     editedTransaction: null,
@@ -861,21 +1868,36 @@
                     
                     lineChartInstance: null,
                     pieChartInstance: null,
+                    barChartInstance: null,
+                    balanceChartInstance: null,
+                    heatmapChartInstance: null,
                     
                     // Modals
                     showClearDataModal: false,
                     showDeleteModal: false,
                     deleteModalMessage: '',
                     itemToDelete: null,
-                    deleteType: null
+                    deleteType: null,
+                    
+                    showReceiptModal: false,
+                    currentReceipt: null,
+                    currentReceiptTransaction: null,
+                    
+                    notification: {
+                        show: false,
+                        type: 'info',
+                        title: '',
+                        message: ''
+                    },
+                    
+                    deferredPrompt: null,
+                    showInstallPrompt: false
                 };
             },
             
             computed: {
-                balance() {
-                    return this.transactions.reduce((sum, transaction) => {
-                        return transaction.type === 'income' ? sum + transaction.amount : sum - transaction.amount;
-                    }, 0);
+                totalBalance() {
+                    return this.accounts.reduce((sum, account) => sum + account.balance, 0);
                 },
                 
                 monthlyIncome() {
@@ -913,13 +1935,50 @@
                 },
                 
                 filteredTransactions() {
-                    if (!this.transactionSearch) return this.transactions;
+                    let filtered = [...this.transactions];
                     
-                    const searchTerm = this.transactionSearch.toLowerCase();
-                    return this.transactions.filter(t => 
-                        t.description.toLowerCase().includes(searchTerm) || 
-                        t.category.toLowerCase().includes(searchTerm)
-                    );
+                    // Apply search filter
+                    if (this.transactionSearch) {
+                        const searchTerm = this.transactionSearch.toLowerCase();
+                        filtered = filtered.filter(t => 
+                            t.description.toLowerCase().includes(searchTerm) || 
+                            t.category.toLowerCase().includes(searchTerm) ||
+                            (t.tags && t.tags.toLowerCase().includes(searchTerm))
+                        );
+                    }
+                    
+                    // Apply type filter
+                    if (this.transactionFilter !== 'all') {
+                        filtered = filtered.filter(t => t.type === this.transactionFilter);
+                    }
+                    
+                    // Apply period filter
+                    const now = new Date();
+                    switch (this.transactionPeriod) {
+                        case 'month':
+                            filtered = filtered.filter(t => {
+                                const date = new Date(t.date);
+                                return date.getMonth() === now.getMonth() && 
+                                       date.getFullYear() === now.getFullYear();
+                            });
+                            break;
+                        case 'last3':
+                            const threeMonthsAgo = new Date();
+                            threeMonthsAgo.setMonth(now.getMonth() - 3);
+                            filtered = filtered.filter(t => new Date(t.date) >= threeMonthsAgo);
+                            break;
+                        case 'year':
+                            filtered = filtered.filter(t => {
+                                const date = new Date(t.date);
+                                return date.getFullYear() === now.getFullYear();
+                            });
+                            break;
+                    }
+                    
+                    // Sort by date
+                    filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    
+                    return filtered;
                 },
                 
                 expensesByCategory() {
@@ -941,20 +2000,128 @@
                     });
                     
                     return result;
+                },
+                
+                expenseCategories() {
+                    return this.categories.filter(c => c.type !== 'income');
+                },
+                
+                budgetAlerts() {
+                    const alerts = [];
+                    const currentMonth = new Date().getMonth();
+                    const currentYear = new Date().getFullYear();
+                    
+                    this.categories.forEach(category => {
+                        if (category.budget) {
+                            const spent = this.transactions
+                                .filter(t => {
+                                    const date = new Date(t.date);
+                                    return t.category === category.name && 
+                                           t.type === 'expense' &&
+                                           date.getMonth() === currentMonth && 
+                                           date.getFullYear() === currentYear;
+                                })
+                                .reduce((sum, t) => sum + t.amount, 0);
+                            
+                            const percentage = (spent / category.budget) * 100;
+                            
+                            if (percentage >= 80) {
+                                alerts.push({
+                                    category: category.name,
+                                    spent: spent,
+                                    budget: category.budget,
+                                    percentage: percentage
+                                });
+                            }
+                        }
+                    });
+                    
+                    this.budgets.forEach(budget => {
+                        if (budget.notify) {
+                            const spent = this.getBudgetSpending(budget);
+                            const percentage = (spent / budget.amount) * 100;
+                            
+                            if (percentage >= budget.notifyAt) {
+                                alerts.push({
+                                    category: budget.category,
+                                    spent: spent,
+                                    budget: budget.amount,
+                                    percentage: percentage
+                                });
+                            }
+                        }
+                    });
+                    
+                    return alerts.sort((a, b) => b.percentage - a.percentage);
+                },
+                
+                projectedBalance() {
+                    const dailyExpenseAvg = this.monthlyExpenses / 30;
+                    const daysRemaining = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() - new Date().getDate();
+                    return this.totalBalance - (dailyExpenseAvg * daysRemaining);
                 }
             },
             
             methods: {
+                // Theme Methods
+                toggleDarkMode() {
+                    this.darkMode = !this.darkMode;
+                    localStorage.setItem('darkMode', this.darkMode);
+                    this.renderCharts();
+                },
+                
+                toggleHighContrast() {
+                    this.highContrast = !this.highContrast;
+                    localStorage.setItem('highContrast', this.highContrast);
+                },
+                
+                // Notification Methods
+                showNotification(type, title, message) {
+                    this.notification = {
+                        show: true,
+                        type,
+                        title,
+                        message
+                    };
+                    
+                    setTimeout(() => {
+                        this.notification.show = false;
+                    }, 5000);
+                },
+                
+                // PWA Methods
+                installPWA() {
+                    if (this.deferredPrompt) {
+                        this.deferredPrompt.prompt();
+                        this.deferredPrompt.userChoice.then(choiceResult => {
+                            if (choiceResult.outcome === 'accepted') {
+                                this.showNotification('success', 'Instalado', 'PurpleFinance foi instalado com sucesso!');
+                            }
+                            this.deferredPrompt = null;
+                            this.showInstallPrompt = false;
+                        });
+                    }
+                },
+                
+                dismissInstallPrompt() {
+                    this.showInstallPrompt = false;
+                    localStorage.setItem('dismissedInstallPrompt', 'true');
+                },
+                
                 // Category Methods
                 addCategory() {
                     if (this.newCategory.name.trim()) {
                         this.categories.push({
                             name: this.newCategory.name.trim(),
-                            color: this.newCategory.color
+                            color: this.newCategory.color,
+                            icon: this.newCategory.icon,
+                            type: this.newCategory.type,
+                            budget: this.newCategory.budget ? parseFloat(this.newCategory.budget) : null
                         });
                         this.resetCategoryForm();
                         this.saveData();
                         this.renderCharts();
+                        this.showNotification('success', 'Sucesso', 'Categoria adicionada com sucesso!');
                     }
                 },
                 
@@ -966,10 +2133,14 @@
                 
                 saveCategoryEdit() {
                     if (this.editingCategory !== null && this.editedCategory.name.trim()) {
-                        this.categories[this.editingCategory] = { ...this.editedCategory };
+                        this.categories[this.editingCategory] = { 
+                            ...this.editedCategory,
+                            budget: this.editedCategory.budget ? parseFloat(this.editedCategory.budget) : null
+                        };
                         this.cancelCategoryEdit();
                         this.saveData();
                         this.renderCharts();
+                        this.showNotification('success', 'Sucesso', 'Categoria atualizada com sucesso!');
                     }
                 },
                 
@@ -979,14 +2150,14 @@
                 },
                 
                 resetCategoryForm() {
-                    this.newCategory = { name: '', color: '#6D28D9' };
+                    this.newCategory = { name: '', color: '#6D28D9', icon: 'tag', type: 'expense', budget: null };
                     this.showCategoryForm = false;
                 },
                 
                 initDeleteCategory(index) {
                     this.itemToDelete = index;
                     this.deleteType = 'category';
-                    this.deleteModalMessage = `Tem certeza que deseja excluir a categoria "${this.categories[index].name}"? Todas as transações associadas serão marcadas como "Sem categoria".`;
+                    this.deleteModalMessage = `Tem certeza que deseja excluir a categoria "${this.categories[index].name}"? Todas as transações associadas serão marcadas como "Outros".`;
                     this.showDeleteModal = true;
                 },
                 
@@ -1003,20 +2174,297 @@
                     }, 0);
                 },
                 
+                getBudgetPercentage(category) {
+                    if (!category.budget) return 0;
+                    
+                    const currentMonth = new Date().getMonth();
+                    const currentYear = new Date().getFullYear();
+                    
+                    const spent = this.transactions
+                        .filter(t => {
+                            const date = new Date(t.date);
+                            return t.category === category.name && 
+                                   t.type === 'expense' &&
+                                   date.getMonth() === currentMonth && 
+                                   date.getFullYear() === currentYear;
+                        })
+                        .reduce((sum, t) => sum + t.amount, 0);
+                    
+                    return (spent / category.budget) * 100;
+                },
+                
+                getContrastColor(hexColor) {
+                    // Convert hex to RGB
+                    const r = parseInt(hexColor.substr(1, 2), 16);
+                    const g = parseInt(hexColor.substr(3, 2), 16);
+                    const b = parseInt(hexColor.substr(5, 2), 16);
+                    
+                    // Calculate luminance
+                    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                    
+                    // Return black or white depending on luminance
+                    return luminance > 0.5 ? '#000000' : '#FFFFFF';
+                },
+                
+                // Account Methods
+                addAccount() {
+                    if (this.newAccount.name.trim()) {
+                        const newId = this.accounts.length > 0 ? Math.max(...this.accounts.map(a => a.id)) + 1 : 1;
+                        this.accounts.push({
+                            id: newId,
+                            name: this.newAccount.name.trim(),
+                            type: this.newAccount.type,
+                            balance: parseFloat(this.newAccount.balance),
+                            color: this.newAccount.color,
+                            description: this.newAccount.description
+                        });
+                        this.resetAccountForm();
+                        this.saveData();
+                        this.showNotification('success', 'Sucesso', 'Conta adicionada com sucesso!');
+                    }
+                },
+                
+                editAccount(account) {
+                    this.editingAccount = account.id;
+                    this.editedAccount = { ...account };
+                    this.showAccountForm = false;
+                },
+                
+                saveAccountEdit() {
+                    if (this.editingAccount) {
+                        const index = this.accounts.findIndex(a => a.id === this.editingAccount);
+                        if (index !== -1) {
+                            this.accounts[index] = { 
+                                ...this.editedAccount,
+                                balance: parseFloat(this.editedAccount.balance)
+                            };
+                            this.cancelAccountEdit();
+                            this.saveData();
+                            this.showNotification('success', 'Sucesso', 'Conta atualizada com sucesso!');
+                        }
+                    }
+                },
+                
+                cancelAccountEdit() {
+                    this.editingAccount = null;
+                    this.editedAccount = null;
+                },
+                
+                resetAccountForm() {
+                    this.newAccount = { name: '', type: 'checking', balance: 0, color: '#6D28D9', description: '' };
+                    this.showAccountForm = false;
+                },
+                
+                initDeleteAccount(id) {
+                    const account = this.accounts.find(a => a.id === id);
+                    this.itemToDelete = id;
+                    this.deleteType = 'account';
+                    this.deleteModalMessage = `Tem certeza que deseja excluir a conta "${account.name}"? Todas as transações associadas serão removidas.`;
+                    this.showDeleteModal = true;
+                },
+                
+                getAccountName(id) {
+                    const account = this.accounts.find(a => a.id === id);
+                    return account ? account.name : 'Conta desconhecida';
+                },
+                
+                getAccountBalance(id) {
+                    const account = this.accounts.find(a => a.id === id);
+                    if (!account) return 0;
+                    
+                    // Start with the account's initial balance
+                    let balance = account.balance;
+                    
+                    // Add all transactions for this account
+                    this.transactions.forEach(t => {
+                        if (t.account === id) {
+                            if (t.type === 'income') {
+                                balance += t.amount;
+                            } else {
+                                balance -= t.amount;
+                            }
+                        }
+                    });
+                    
+                    return balance;
+                },
+                
+                countTransactionsByAccount(id) {
+                    return this.transactions.filter(t => t.account === id).length;
+                },
+                
+                makeTransfer() {
+                    if (this.transfer.fromAccount && this.transfer.toAccount && this.transfer.amount > 0) {
+                        const fromAccount = this.accounts.find(a => a.id === this.transfer.fromAccount);
+                        const toAccount = this.accounts.find(a => a.id === this.transfer.toAccount);
+                        
+                        if (!fromAccount || !toAccount) {
+                            this.showNotification('error', 'Erro', 'Contas inválidas para transferência');
+                            return;
+                        }
+                        
+                        if (this.transfer.fromAccount === this.transfer.toAccount) {
+                            this.showNotification('error', 'Erro', 'Não é possível transferir para a mesma conta');
+                            return;
+                        }
+                        
+                        // Create two transactions (one expense, one income)
+                        const transactionId = Date.now();
+                        const description = this.transfer.description || `Transferência para ${toAccount.name}`;
+                        
+                        // Expense from source account
+                        this.transactions.push({
+                            id: transactionId,
+                            description: description,
+                            amount: parseFloat(this.transfer.amount),
+                            category: 'Transferência',
+                            type: 'expense',
+                            date: this.transfer.date,
+                            account: this.transfer.fromAccount,
+                            tags: 'transferência'
+                        });
+                        
+                        // Income to destination account
+                        this.transactions.push({
+                            id: transactionId + 1,
+                            description: `Transferência de ${fromAccount.name}`,
+                            amount: parseFloat(this.transfer.amount),
+                            category: 'Transferência',
+                            type: 'income',
+                            date: this.transfer.date,
+                            account: this.transfer.toAccount,
+                            tags: 'transferência'
+                        });
+                        
+                        this.resetTransferForm();
+                        this.saveData();
+                        this.showNotification('success', 'Sucesso', 'Transferência realizada com sucesso!');
+                    }
+                },
+                
+                resetTransferForm() {
+                    this.transfer = {
+                        fromAccount: null,
+                        toAccount: null,
+                        amount: 0,
+                        date: new Date().toISOString().split('T')[0],
+                        description: ''
+                    };
+                },
+                
+                // Budget Methods
+                addBudget() {
+                    if (this.newBudget.category && this.newBudget.amount > 0) {
+                        this.budgets.push({
+                            id: Date.now(),
+                            category: this.newBudget.category,
+                            amount: parseFloat(this.newBudget.amount),
+                            period: this.newBudget.period,
+                            monthYear: this.newBudget.monthYear,
+                            notify: this.newBudget.notify,
+                            notifyAt: this.newBudget.notify ? parseInt(this.newBudget.notifyAt) : 80
+                        });
+                        this.resetBudgetForm();
+                        this.saveData();
+                        this.showNotification('success', 'Sucesso', 'Orçamento adicionado com sucesso!');
+                    }
+                },
+                
+                editBudget(budget) {
+                    this.editingBudget = budget.id;
+                    this.editedBudget = { ...budget };
+                    this.showBudgetForm = false;
+                },
+                
+                saveBudgetEdit() {
+                    if (this.editingBudget) {
+                        const index = this.budgets.findIndex(b => b.id === this.editingBudget);
+                        if (index !== -1) {
+                            this.budgets[index] = { 
+                                ...this.editedBudget,
+                                amount: parseFloat(this.editedBudget.amount),
+                                notifyAt: this.editedBudget.notify ? parseInt(this.editedBudget.notifyAt) : 80
+                            };
+                            this.cancelBudgetEdit();
+                            this.saveData();
+                            this.showNotification('success', 'Sucesso', 'Orçamento atualizado com sucesso!');
+                        }
+                    }
+                },
+                
+                cancelBudgetEdit() {
+                    this.editingBudget = null;
+                    this.editedBudget = null;
+                },
+                
+                resetBudgetForm() {
+                    this.newBudget = {
+                        category: '',
+                        amount: 0,
+                        period: 'monthly',
+                        monthYear: new Date().toISOString().split('T')[0].substring(0, 7),
+                        notify: false,
+                        notifyAt: 80
+                    };
+                    this.showBudgetForm = false;
+                },
+                
+                initDeleteBudget(id) {
+                    const budget = this.budgets.find(b => b.id === id);
+                    this.itemToDelete = id;
+                    this.deleteType = 'budget';
+                    this.deleteModalMessage = `Tem certeza que deseja excluir o orçamento para "${budget.category}"?`;
+                    this.showDeleteModal = true;
+                },
+                
+                getBudgetSpending(budget) {
+                    const [year, month] = budget.monthYear.split('-').map(Number);
+                    
+                    return this.transactions
+                        .filter(t => {
+                            const date = new Date(t.date);
+                            return t.category === budget.category && 
+                                   t.type === 'expense' &&
+                                   date.getMonth() === month - 1 && 
+                                   date.getFullYear() === year;
+                        })
+                        .reduce((sum, t) => sum + t.amount, 0);
+                },
+                
+                getBudgetPercentage(budget) {
+                    const spent = this.getBudgetSpending(budget);
+                    return (spent / budget.amount) * 100;
+                },
+                
+                formatMonthYear(monthYear) {
+                    const [year, month] = monthYear.split('-');
+                    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                    return `${months[parseInt(month) - 1]} ${year}`;
+                },
+                
                 // Transaction Methods
                 addTransaction() {
                     if (this.newTransaction.description && this.newTransaction.amount > 0) {
-                        this.transactions.push({
+                        const transaction = {
                             id: Date.now(),
                             description: this.newTransaction.description,
                             amount: parseFloat(this.newTransaction.amount),
                             category: this.newTransaction.category,
                             type: this.newTransaction.type,
-                            date: new Date().toISOString()
-                        });
+                            date: this.newTransaction.date,
+                            account: parseInt(this.newTransaction.account),
+                            tags: this.newTransaction.tags,
+                            receipt: this.newTransaction.receipt
+                        };
+                        
+                        this.transactions.push(transaction);
                         this.resetTransactionForm();
                         this.saveData();
                         this.renderCharts();
+                        this.showNotification('success', 'Sucesso', 'Transação adicionada com sucesso!');
+                        
+                        // Check if this transaction affects any goals
+                        this.checkGoalProgress(transaction);
                     }
                 },
                 
@@ -1029,10 +2477,15 @@
                 saveEdit() {
                     const index = this.transactions.findIndex(t => t.id === this.editingTransaction);
                     if (index !== -1) {
-                        this.transactions[index] = { ...this.editedTransaction };
+                        this.transactions[index] = { 
+                            ...this.editedTransaction,
+                            amount: parseFloat(this.editedTransaction.amount),
+                            account: parseInt(this.editedTransaction.account)
+                        };
                         this.saveData();
                         this.cancelEdit();
                         this.renderCharts();
+                        this.showNotification('success', 'Sucesso', 'Transação atualizada com sucesso!');
                     }
                 },
                 
@@ -1046,7 +2499,11 @@
                         description: '', 
                         amount: 0, 
                         category: this.categories[0]?.name || 'Outros', 
-                        type: 'expense' 
+                        type: 'expense',
+                        date: new Date().toISOString().split('T')[0],
+                        account: this.accounts[0]?.id || 1,
+                        tags: '',
+                        receipt: null
                     };
                 },
                 
@@ -1058,6 +2515,91 @@
                     this.showDeleteModal = true;
                 },
                 
+                handleReceiptUpload(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                        this.showNotification('error', 'Erro', 'O arquivo é muito grande (máximo 5MB)');
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const fileType = file.type.includes('pdf') ? 'pdf' : 'image';
+                        this.newTransaction.receipt = {
+                            type: fileType,
+                            name: file.name,
+                            url: e.target.result
+                        };
+                    };
+                    
+                    if (file.type.includes('pdf')) {
+                        reader.readAsDataURL(file);
+                    } else {
+                        reader.readAsDataURL(file);
+                    }
+                },
+                
+                handleReceiptUploadEdit(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                        this.showNotification('error', 'Erro', 'O arquivo é muito grande (máximo 5MB)');
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const fileType = file.type.includes('pdf') ? 'pdf' : 'image';
+                        this.editedTransaction.receipt = {
+                            type: fileType,
+                            name: file.name,
+                            url: e.target.result
+                        };
+                    };
+                    
+                    if (file.type.includes('pdf')) {
+                        reader.readAsDataURL(file);
+                    } else {
+                        reader.readAsDataURL(file);
+                    }
+                },
+                
+                viewReceipt(transaction) {
+                    this.currentReceipt = transaction.receipt;
+                    this.currentReceiptTransaction = transaction;
+                    this.showReceiptModal = true;
+                },
+                
+                removeReceipt(transaction) {
+                    transaction.receipt = null;
+                },
+                
+                exportTransactions() {
+                    // Prepare data for export
+                    const data = this.filteredTransactions.map(t => ({
+                        Data: this.formatDate(t.date),
+                        Descrição: t.description,
+                        Categoria: t.category,
+                        Tipo: t.type === 'income' ? 'Receita' : 'Despesa',
+                        Valor: this.formatCurrency(t.amount),
+                        Conta: this.getAccountName(t.account),
+                        Tags: t.tags || ''
+                    }));
+                    
+                    // Create worksheet
+                    const ws = XLSX.utils.json_to_sheet(data);
+                    
+                    // Create workbook
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Transações");
+                    
+                    // Export to file
+                    XLSX.writeFile(wb, "transacoes_purplefinance.xlsx");
+                },
+                
                 // Goal Methods
                 addGoal() {
                     if (this.newGoal.description && this.newGoal.target > 0) {
@@ -1065,10 +2607,14 @@
                             id: Date.now(),
                             description: this.newGoal.description,
                             target: parseFloat(this.newGoal.target),
-                            current: parseFloat(this.newGoal.current)
+                            current: parseFloat(this.newGoal.current),
+                            type: this.newGoal.type,
+                            targetDate: this.newGoal.targetDate,
+                            category: this.newGoal.category
                         });
                         this.resetGoalForm();
                         this.saveData();
+                        this.showNotification('success', 'Sucesso', 'Meta adicionada com sucesso!');
                     }
                 },
                 
@@ -1081,9 +2627,14 @@
                 saveGoalEdit() {
                     const index = this.goals.findIndex(g => g.id === this.editingGoal);
                     if (index !== -1) {
-                        this.goals[index] = { ...this.editedGoal };
+                        this.goals[index] = { 
+                            ...this.editedGoal,
+                            target: parseFloat(this.editedGoal.target),
+                            current: parseFloat(this.editedGoal.current)
+                        };
                         this.saveData();
                         this.cancelGoalEdit();
+                        this.showNotification('success', 'Sucesso', 'Meta atualizada com sucesso!');
                     }
                 },
                 
@@ -1093,7 +2644,14 @@
                 },
                 
                 resetGoalForm() {
-                    this.newGoal = { description: '', target: 0, current: 0 };
+                    this.newGoal = { 
+                        description: '', 
+                        target: 0, 
+                        current: 0,
+                        type: 'save',
+                        targetDate: '',
+                        category: ''
+                    };
                     this.showGoalForm = false;
                 },
                 
@@ -1103,6 +2661,88 @@
                     this.deleteType = 'goal';
                     this.deleteModalMessage = `Tem certeza que deseja excluir a meta "${goal.description}"?`;
                     this.showDeleteModal = true;
+                },
+                
+                calculateMonthlySuggestion(goal) {
+                    if (goal.type === 'save' && goal.targetDate) {
+                        const targetDate = new Date(goal.targetDate);
+                        const today = new Date();
+                        const monthsRemaining = (targetDate.getFullYear() - today.getFullYear()) * 12 + 
+                                              (targetDate.getMonth() - today.getMonth());
+                        
+                        if (monthsRemaining <= 0) return goal.target - goal.current;
+                        
+                        return (goal.target - goal.current) / monthsRemaining;
+                    }
+                    return goal.target;
+                },
+                
+                daysRemaining(goal) {
+                    if (!goal.targetDate) return 0;
+                    
+                    const targetDate = new Date(goal.targetDate);
+                    const today = new Date();
+                    const diffTime = targetDate - today;
+                    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                },
+                
+                getMonthlyProgress(goal) {
+                    if (goal.type !== 'monthly') return 0;
+                    
+                    const currentMonth = new Date().getMonth();
+                    const currentYear = new Date().getFullYear();
+                    
+                    return this.transactions
+                        .filter(t => {
+                            const date = new Date(t.date);
+                            return t.type === 'expense' &&
+                                   date.getMonth() === currentMonth && 
+                                   date.getFullYear() === currentYear &&
+                                   (!goal.category || t.category === goal.category);
+                        })
+                        .reduce((sum, t) => sum + t.amount, 0);
+                },
+                
+                addToGoal(goal) {
+                    this.selectedGoal = goal;
+                    this.amountToAdd = 0;
+                    this.goalAdditionDescription = '';
+                    this.showAddToGoalModal = true;
+                },
+                
+                confirmAddToGoal() {
+                    if (this.amountToAdd > 0) {
+                        this.selectedGoal.current += parseFloat(this.amountToAdd);
+                        
+                        // Create a transaction for this addition if desired
+                        if (this.goalAdditionDescription) {
+                            this.transactions.push({
+                                id: Date.now(),
+                                description: this.goalAdditionDescription,
+                                amount: parseFloat(this.amountToAdd),
+                                category: this.selectedGoal.category || 'Economia',
+                                type: 'expense',
+                                date: new Date().toISOString().split('T')[0],
+                                account: this.accounts[0]?.id || 1,
+                                tags: 'meta'
+                            });
+                        }
+                        
+                        this.saveData();
+                        this.showAddToGoalModal = false;
+                        this.showNotification('success', 'Sucesso', 'Valor adicionado à meta com sucesso!');
+                    }
+                },
+                
+                checkGoalProgress(transaction) {
+                    if (transaction.type === 'expense') {
+                        this.goals.forEach(goal => {
+                            if (goal.category && goal.category === transaction.category) {
+                                // For monthly goals, we don't automatically add to current
+                                // But we could update some progress tracking here
+                            }
+                        });
+                    }
                 },
                 
                 // Modal Methods
@@ -1120,13 +2760,20 @@
                             }
                         });
                         this.categories.splice(this.itemToDelete, 1);
+                    } else if (this.deleteType === 'account') {
+                        // Delete all transactions for this account
+                        this.transactions = this.transactions.filter(t => t.account !== this.itemToDelete);
+                        this.accounts = this.accounts.filter(a => a.id !== this.itemToDelete);
+                    } else if (this.deleteType === 'budget') {
+                        this.budgets = this.budgets.filter(b => b.id !== this.itemToDelete);
                     }
                     
                     this.saveData();
-                    if (this.deleteType !== 'goal') {
+                    if (this.deleteType !== 'goal' && this.deleteType !== 'budget') {
                         this.renderCharts();
                     }
                     this.cancelDelete();
+                    this.showNotification('success', 'Sucesso', 'Item excluído com sucesso!');
                 },
                 
                 cancelDelete() {
@@ -1139,6 +2786,7 @@
                 confirmClearData() {
                     this.clearData();
                     this.showClearDataModal = false;
+                    this.showNotification('success', 'Sucesso', 'Todos os dados foram resetados!');
                 },
                 
                 // Helper Methods
@@ -1168,16 +2816,23 @@
                     localStorage.removeItem('transactions');
                     localStorage.removeItem('goals');
                     localStorage.removeItem('categories');
+                    localStorage.removeItem('accounts');
+                    localStorage.removeItem('budgets');
                     this.transactions = [];
                     this.goals = [];
-                    this.categories = [
-                        { name: 'Alimentação', color: '#FF6384' },
-                        { name: 'Transporte', color: '#36A2EB' },
-                        { name: 'Lazer', color: '#FFCE56' },
-                        { name: 'Saúde', color: '#4BC0C0' },
-                        { name: 'Moradia', color: '#9966FF' },
-                        { name: 'Salário', color: '#8AC24A' }
+                    this.accounts = [
+                        { id: 1, name: 'Conta Corrente', type: 'checking', balance: 0, color: '#6D28D9', description: '' },
+                        { id: 2, name: 'Cartão de Crédito', type: 'credit', balance: 0, color: '#EF4444', description: '' }
                     ];
+                    this.categories = [
+                        { name: 'Alimentação', color: '#FF6384', icon: 'utensils', type: 'expense' },
+                        { name: 'Transporte', color: '#36A2EB', icon: 'car', type: 'expense' },
+                        { name: 'Lazer', color: '#FFCE56', icon: 'film', type: 'expense' },
+                        { name: 'Saúde', color: '#4BC0C0', icon: 'heart', type: 'expense' },
+                        { name: 'Moradia', color: '#9966FF', icon: 'home', type: 'expense' },
+                        { name: 'Salário', color: '#8AC24A', icon: 'money-bill-wave', type: 'income' }
+                    ];
+                    this.budgets = [];
                     this.renderCharts();
                 },
                 
@@ -1185,11 +2840,16 @@
                     localStorage.setItem('transactions', JSON.stringify(this.transactions));
                     localStorage.setItem('goals', JSON.stringify(this.goals));
                     localStorage.setItem('categories', JSON.stringify(this.categories));
+                    localStorage.setItem('accounts', JSON.stringify(this.accounts));
+                    localStorage.setItem('budgets', JSON.stringify(this.budgets));
                 },
                 
                 renderCharts() {
                     this.renderPieChart();
                     this.renderLineChart();
+                    this.renderBarChart();
+                    this.renderBalanceChart();
+                    this.renderHeatmapChart();
                 },
                 
                 renderPieChart() {
@@ -1201,10 +2861,20 @@
                     
                     if (!ctx) return;
                     
+                    const monthsToInclude = parseInt(this.chartPeriod);
+                    const now = new Date();
+                    const startDate = new Date();
+                    startDate.setMonth(now.getMonth() - monthsToInclude + 1);
+                    
                     const categoryNames = this.categories.map(c => c.name);
                     const data = categoryNames.map(category => {
                         return this.transactions
-                            .filter(t => t.category === category && t.type === 'expense')
+                            .filter(t => {
+                                const date = new Date(t.date);
+                                return t.category === category && 
+                                       t.type === 'expense' &&
+                                       date >= startDate;
+                            })
                             .reduce((sum, t) => sum + t.amount, 0);
                     });
                     
@@ -1228,7 +2898,8 @@
                                     position: 'right',
                                     labels: {
                                         usePointStyle: true,
-                                        padding: 20
+                                        padding: 20,
+                                        color: this.darkMode ? '#E2E8F0' : '#1F2937'
                                     }
                                 },
                                 tooltip: {
@@ -1250,6 +2921,26 @@
                     });
                 },
                 
+                handlePieClick(event) {
+                    if (this.pieChartInstance) {
+                        const activeElement = this.pieChartInstance.getElementsAtEventForMode(
+                            event, 
+                            'nearest', 
+                            { intersect: true }, 
+                            true
+                        );
+                        
+                        if (activeElement.length > 0) {
+                            const index = activeElement[0].index;
+                            const category = this.categories[index].name;
+                            this.activeView = 'transactions';
+                            this.transactionTab = 'list';
+                            this.transactionSearch = category;
+                            this.transactionFilter = 'expense';
+                        }
+                    }
+                },
+                
                 renderLineChart() {
                     const ctx = this.$refs.lineChart;
                     
@@ -1261,32 +2952,46 @@
                     
                     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
                     const currentMonth = new Date().getMonth();
+                    const monthsToShow = 6;
                     
                     const displayMonths = [];
-                    for (let i = 5; i >= 0; i--) {
+                    for (let i = monthsToShow - 1; i >= 0; i--) {
                         const monthIndex = (currentMonth - i + 12) % 12;
                         displayMonths.push(months[monthIndex]);
                     }
                     
                     const incomeData = displayMonths.map((_, index) => {
-                        const monthIndex = (currentMonth - 5 + index + 12) % 12;
+                        const monthIndex = (currentMonth - monthsToShow + 1 + index + 12) % 12;
+                        const yearAdjust = Math.floor((currentMonth - monthsToShow + 1 + index) / 12);
+                        const currentYear = new Date().getFullYear() + yearAdjust;
+                        
                         return this.transactions
                             .filter(t => {
                                 const date = new Date(t.date);
-                                return date.getMonth() === monthIndex && t.type === 'income';
+                                return date.getMonth() === monthIndex && 
+                                       date.getFullYear() === currentYear && 
+                                       t.type === 'income';
                             })
                             .reduce((sum, t) => sum + t.amount, 0);
                     });
                     
                     const expenseData = displayMonths.map((_, index) => {
-                        const monthIndex = (currentMonth - 5 + index + 12) % 12;
+                        const monthIndex = (currentMonth - monthsToShow + 1 + index + 12) % 12;
+                        const yearAdjust = Math.floor((currentMonth - monthsToShow + 1 + index) / 12);
+                        const currentYear = new Date().getFullYear() + yearAdjust;
+                        
                         return this.transactions
                             .filter(t => {
                                 const date = new Date(t.date);
-                                return date.getMonth() === monthIndex && t.type === 'expense';
+                                return date.getMonth() === monthIndex && 
+                                       date.getFullYear() === currentYear && 
+                                       t.type === 'expense';
                             })
                             .reduce((sum, t) => sum + t.amount, 0);
                     });
+                    
+                    const textColor = this.darkMode ? '#E2E8F0' : '#1F2937';
+                    const gridColor = this.darkMode ? 'rgba(226, 232, 240, 0.1)' : 'rgba(0, 0, 0, 0.05)';
                     
                     this.lineChartInstance = new Chart(ctx, {
                         type: 'line',
@@ -1324,7 +3029,8 @@
                                 legend: {
                                     position: 'top',
                                     labels: {
-                                        usePointStyle: true
+                                        usePointStyle: true,
+                                        color: textColor
                                     }
                                 },
                                 tooltip: {
@@ -1349,38 +3055,438 @@
                                                 style: 'currency', 
                                                 currency: 'BRL' 
                                             }).format(value);
-                                        }
+                                        },
+                                        color: textColor
                                     },
                                     grid: {
-                                        color: 'rgba(0, 0, 0, 0.05)'
+                                        color: gridColor
                                     }
                                 },
                                 x: {
                                     grid: {
                                         display: false
+                                    },
+                                    ticks: {
+                                        color: textColor
                                     }
                                 }
                             }
+                        }
+                    });
+                },
+                
+                renderBarChart() {
+                    const ctx = this.$refs.barChart;
+                    
+                    if (this.barChartInstance) {
+                        this.barChartInstance.destroy();
+                    }
+                    
+                    if (!ctx) return;
+                    
+                    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                    const currentMonth = new Date().getMonth();
+                    const monthsToShow = 6;
+                    
+                    const displayMonths = [];
+                    for (let i = monthsToShow - 1; i >= 0; i--) {
+                        const monthIndex = (currentMonth - i + 12) % 12;
+                        displayMonths.push(months[monthIndex]);
+                    }
+                    
+                    const incomeData = displayMonths.map((_, index) => {
+                        const monthIndex = (currentMonth - monthsToShow + 1 + index + 12) % 12;
+                        const yearAdjust = Math.floor((currentMonth - monthsToShow + 1 + index) / 12);
+                        const currentYear = new Date().getFullYear() + yearAdjust;
+                        
+                        return this.transactions
+                            .filter(t => {
+                                const date = new Date(t.date);
+                                return date.getMonth() === monthIndex && 
+                                       date.getFullYear() === currentYear && 
+                                       t.type === 'income';
+                            })
+                            .reduce((sum, t) => sum + t.amount, 0);
+                    });
+                    
+                    const expenseData = displayMonths.map((_, index) => {
+                        const monthIndex = (currentMonth - monthsToShow + 1 + index + 12) % 12;
+                        const yearAdjust = Math.floor((currentMonth - monthsToShow + 1 + index) / 12);
+                        const currentYear = new Date().getFullYear() + yearAdjust;
+                        
+                        return this.transactions
+                            .filter(t => {
+                                const date = new Date(t.date);
+                                return date.getMonth() === monthIndex && 
+                                       date.getFullYear() === currentYear && 
+                                       t.type === 'expense';
+                            })
+                            .reduce((sum, t) => sum + t.amount, 0);
+                    });
+                    
+                    const textColor = this.darkMode ? '#E2E8F0' : '#1F2937';
+                    const gridColor = this.darkMode ? 'rgba(226, 232, 240, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+                    
+                    this.barChartInstance = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: displayMonths,
+                            datasets: [
+                                {
+                                    label: 'Receitas',
+                                    data: incomeData,
+                                    backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                                    borderColor: '#10B981',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'Despesas',
+                                    data: expenseData,
+                                    backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                                    borderColor: '#EF4444',
+                                    borderWidth: 1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                    labels: {
+                                        usePointStyle: true,
+                                        color: textColor
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const label = context.dataset.label || '';
+                                            const value = context.raw || 0;
+                                            return `${label}: ${new Intl.NumberFormat('pt-BR', { 
+                                                style: 'currency', 
+                                                currency: 'BRL' 
+                                            }).format(value)}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return new Intl.NumberFormat('pt-BR', { 
+                                                style: 'currency', 
+                                                currency: 'BRL' 
+                                            }).format(value);
+                                        },
+                                        color: textColor
+                                    },
+                                    grid: {
+                                        color: gridColor
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    },
+                                    ticks: {
+                                        color: textColor
+                                    }
+                                }
+                            }
+                        }
+                    });
+                },
+                
+                renderBalanceChart() {
+                    const ctx = this.$refs.balanceChart;
+                    
+                    if (this.balanceChartInstance) {
+                        this.balanceChartInstance.destroy();
+                    }
+                    
+                    if (!ctx) return;
+                    
+                    // Sort transactions by date
+                    const sortedTransactions = [...this.transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+                    
+                    // Calculate running balance
+                    let runningBalance = 0;
+                    const balanceData = [];
+                    const labels = [];
+                    
+                    sortedTransactions.forEach(t => {
+                        runningBalance += t.type === 'income' ? t.amount : -t.amount;
+                        balanceData.push({
+                            x: new Date(t.date),
+                            y: runningBalance
+                        });
+                        labels.push(this.formatDateShort(t.date));
+                    });
+                    
+                    // If no transactions, show current balance
+                    if (balanceData.length === 0) {
+                        balanceData.push({
+                            x: new Date(),
+                            y: this.totalBalance
+                        });
+                        labels.push(this.formatDateShort(new Date().toISOString()));
+                    }
+                    
+                    const textColor = this.darkMode ? '#E2E8F0' : '#1F2937';
+                    const gridColor = this.darkMode ? 'rgba(226, 232, 240, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+                    
+                    this.balanceChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Saldo',
+                                data: balanceData,
+                                borderColor: '#6D28D9',
+                                backgroundColor: 'rgba(109, 40, 217, 0.1)',
+                                tension: 0.1,
+                                fill: true,
+                                borderWidth: 2,
+                                pointBackgroundColor: '#6D28D9'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        color: textColor
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `Saldo: ${new Intl.NumberFormat('pt-BR', { 
+                                                style: 'currency', 
+                                                currency: 'BRL' 
+                                            }).format(context.raw.y)}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    ticks: {
+                                        callback: function(value) {
+                                            return new Intl.NumberFormat('pt-BR', { 
+                                                style: 'currency', 
+                                                currency: 'BRL' 
+                                            }).format(value);
+                                        },
+                                        color: textColor
+                                    },
+                                    grid: {
+                                        color: gridColor
+                                    }
+                                },
+                                x: {
+                                    ticks: {
+                                        color: textColor
+                                    },
+                                    grid: {
+                                        color: gridColor
+                                    }
+                                }
+                            }
+                        }
+                    });
+                },
+                
+                renderHeatmapChart() {
+                    const ctx = this.$refs.heatmapChart;
+                    
+                    if (this.heatmapChartInstance) {
+                        this.heatmapChartInstance.destroy();
+                    }
+                    
+                    if (!ctx) return;
+                    
+                    // Prepare data for heatmap (expenses by day of week)
+                    const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                    const dayData = [0, 0, 0, 0, 0, 0, 0];
+                    const dayCount = [0, 0, 0, 0, 0, 0, 0];
+                    
+                    this.transactions.forEach(t => {
+                        if (t.type === 'expense') {
+                            const date = new Date(t.date);
+                            const day = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+                            dayData[day] += t.amount;
+                            dayCount[day]++;
+                        }
+                    });
+                    
+                    // Calculate average per day
+                    const avgData = dayData.map((total, index) => {
+                        return dayCount[index] > 0 ? total / dayCount[index] : 0;
+                    });
+                    
+                    // Find max for scaling
+                    const maxValue = Math.max(...avgData);
+                    
+                    const textColor = this.darkMode ? '#E2E8F0' : '#1F2937';
+                    
+                    this.heatmapChartInstance = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: daysOfWeek,
+                            datasets: [{
+                                label: 'Gasto médio por dia',
+                                data: avgData,
+                                backgroundColor: avgData.map(value => {
+                                    const ratio = value / maxValue;
+                                    return `rgba(239, 68, 68, ${0.3 + 0.7 * ratio})`;
+                                }),
+                                borderColor: avgData.map(value => {
+                                    const ratio = value / maxValue;
+                                    return `rgba(239, 68, 68, ${0.5 + 0.5 * ratio})`;
+                                }),
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `Gasto médio: ${new Intl.NumberFormat('pt-BR', { 
+                                                style: 'currency', 
+                                                currency: 'BRL' 
+                                            }).format(context.raw)}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return new Intl.NumberFormat('pt-BR', { 
+                                                style: 'currency', 
+                                                currency: 'BRL' 
+                                            }).format(value);
+                                        },
+                                        color: textColor
+                                    },
+                                    grid: {
+                                        color: this.darkMode ? 'rgba(226, 232, 240, 0.1)' : 'rgba(0, 0, 0, 0.05)'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    },
+                                    ticks: {
+                                        color: textColor
+                                    }
+                                }
+                            }
+                        }
+                    });
+                },
+                
+                // Service Worker Registration for PWA
+                registerServiceWorker() {
+                    if ('serviceWorker' in navigator) {
+                        window.addEventListener('load', () => {
+                            navigator.serviceWorker.register('/sw.js').then(registration => {
+                                console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                            }).catch(err => {
+                                console.log('ServiceWorker registration failed: ', err);
+                            });
+                        });
+                    }
+                },
+                
+                // Check for PWA install prompt
+                checkInstallPrompt() {
+                    window.addEventListener('beforeinstallprompt', (e) => {
+                        // Prevent the mini-infobar from appearing on mobile
+                        e.preventDefault();
+                        // Stash the event so it can be triggered later.
+                        this.deferredPrompt = e;
+                        
+                        // Only show prompt if user hasn't dismissed it before
+                        if (!localStorage.getItem('dismissedInstallPrompt')) {
+                            this.showInstallPrompt = true;
                         }
                     });
                 }
             },
             
             mounted() {
+                // Load saved data
                 const savedTransactions = JSON.parse(localStorage.getItem('transactions')) || [];
                 const savedGoals = JSON.parse(localStorage.getItem('goals')) || [];
                 const savedCategories = JSON.parse(localStorage.getItem('categories')) || this.categories;
+                const savedAccounts = JSON.parse(localStorage.getItem('accounts')) || this.accounts;
+                const savedBudgets = JSON.parse(localStorage.getItem('budgets')) || [];
                 
                 this.transactions = savedTransactions;
                 this.goals = savedGoals;
                 this.categories = savedCategories.length ? savedCategories : this.categories;
+                this.accounts = savedAccounts.length ? savedAccounts : this.accounts;
+                this.budgets = savedBudgets;
                 
-                // Definir categoria padrão para nova transação
+                // Set default category for new transaction
                 if (this.categories.length > 0) {
                     this.newTransaction.category = this.categories[0].name;
                 }
                 
-                this.renderCharts();
+                // Set default account for new transaction
+                if (this.accounts.length > 0) {
+                    this.newTransaction.account = this.accounts[0].id;
+                }
+                
+                // Set default from/to accounts for transfer
+                if (this.accounts.length > 1) {
+                    this.transfer.fromAccount = this.accounts[0].id;
+                    this.transfer.toAccount = this.accounts[1].id;
+                }
+                
+                // Load theme preferences
+                this.darkMode = localStorage.getItem('darkMode') === 'true';
+                this.highContrast = localStorage.getItem('highContrast') === 'true';
+                
+                // Render charts
+                this.$nextTick(() => {
+                    this.renderCharts();
+                });
+                
+                // Check for PWA install prompt
+                this.checkInstallPrompt();
+                
+                // Register service worker
+                this.registerServiceWorker();
+                
+                // Check for budget alerts
+                if (this.budgetAlerts.length > 0) {
+                    this.budgetAlerts.forEach(alert => {
+                        if (alert.percentage >= 100) {
+                            this.showNotification('error', 'Orçamento excedido', `Você excedeu o orçamento de ${alert.category} em ${Math.round(alert.percentage)}%`);
+                        } else if (alert.percentage >= 80) {
+                            this.showNotification('warning', 'Orçamento próximo do limite', `Você já gastou ${Math.round(alert.percentage)}% do orçamento de ${alert.category}`);
+                        }
+                    });
+                }
+                
+                // Check for recurring transactions that need to be added
+                this.checkRecurringTransactions();
             }
         });
         
